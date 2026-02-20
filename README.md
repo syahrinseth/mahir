@@ -1,59 +1,344 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# MAHIR: Headless AI-Powered Multi-Tenant Platform
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![GitHub Stars](https://img.shields.io/github/stars/syahrinseth/mahir?style=social)](https://github.com/syahrinseth/mahir)
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## What is MAHIR?
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+MAHIR is a **headless, multi-tenant, modular platform** that combines:
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **AI Agent Framework** — Multi-provider intelligent automation (OpenAI, Anthropic, Gemini)
+- **Modular Architecture** — Blog, Portfolio, Clinic modules + extensible design
+- **Enterprise-Grade Security** — Ready encryption, immutable audit logs, role-based access
+- **Flexible Deployment** — Self-hosted Docker/Kubernetes or managed cloud SaaS
+- **Open-Source & Free** — AGPL v3 licensed, no vendor lock-in, community-driven
 
-## Learning Laravel
+Built for **digital agencies, healthcare providers, creative studios, and enterprises** who need intelligent automation without sacrificing data sovereignty.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+---
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Why "Headless"?
 
-## Laravel Sponsors
+MAHIR is **API-first, not UI-first**:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+- No opinionated frontend (use React, Vue, SwiftUI, or your own)
+- Flexible integrations (REST API, WebSocket, CLI)
+- Fits your tech stack (not forced into one)
+- Modular (use only what you need)
 
-### Premium Partners
+---
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## Key Features
 
-## Contributing
+### AI-Powered Agent Automation
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- **Multi-Provider Support** — OpenAI (GPT-4), Anthropic (Claude), Google Gemini, with automatic failover
+- **Structured Output** — Agents return JSON, not just text
+- **Async Queueing** — Fire-and-forget long operations, poll for results
+- **Cost Tracking** — See exactly what each AI action costs
+- **No Rate Limit Hell** — Built-in, configurable per-scope limits
 
-## Code of Conduct
+### Modular Design
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- **Blog Module** — Content, SEO, AI-powered generation
+- **Portfolio Module** — Projects, tech stacks, AI-powered descriptions
+- **Clinic Module** — HIPAA-ready patient management with encryption
+- **Extensible** — Build your own modules on the same foundation
 
-## Security Vulnerabilities
+### Multi-Tenant Architecture
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+- **Data Isolation** — Complete isolation per organization
+- **Scope-Based Access** — Fine-grained permissions (blog:create, clinic:read, etc.)
+- **Tenant-Aware Queries** — Automatic query scoping, no data leaks
+- **Shared Infrastructure** — Cost-efficient deployment model
+
+### Enterprise Security
+
+- **HIPAA-Compliant** — Patient PII encrypted at rest (AES-256)
+- **Immutable Audit Logs** — Every action tracked, tamper-proof
+- **Role-Based Access Control** — JWT + Bearer token authentication
+- **Rate Limiting** — Per-agent, per-scope, configurable
+- **Compliance-Ready** — For healthcare, finance, and regulated industries
+
+### Flexible Deployment
+
+- **Docker Compose** — Self-hosted in 5 minutes
+- **Kubernetes** — Enterprise-grade scaling
+- **Managed Cloud** — mahir.syahrinseth.com SaaS (zero-ops)
+- **Hybrid** — Use both, migrate freely
+- **Offline Licensing** — Air-gapped deployments supported
+
+---
+
+## Quick Start
+
+### Self-Hosted (5 minutes)
+
+**Prerequisites:** PHP 8.2+, Composer, Node.js 18+, npm
+
+```bash
+# Clone repository
+git clone https://github.com/syahrinseth/mahir.git
+cd mahir
+
+# Install dependencies, generate app key, run migrations, and build assets
+composer setup
+
+# Start the development server
+composer run dev
+```
+
+The app will be available at [http://mahir.test](http://mahir.test) if using [Laravel Herd](https://herd.laravel.com), or at `http://localhost:8000` via `php artisan serve`.
+
+### Cloud SaaS (< 1 minute)
+
+Visit [mahir.syahrinseth.com](https://mahir.syahrinseth.com) → Sign up → Start building
+
+---
+
+## Architecture at a Glance
+
+```
+┌─────────────────────────────────────────────┐
+│  MAHIR: Headless Multi-Tenant Platform      │
+├─────────────────────────────────────────────┤
+│                                             │
+│  Frontend (Your Choice)                     │
+│  ├─ React Web App                          │
+│  ├─ React Native Mobile                    │
+│  ├─ Custom UI                              │
+│  └─ Third-party dashboard                  │
+│           ↓ (REST API / WebSocket)          │
+│  ┌─────────────────────────────────────────┤
+│  │  MAHIR API (Laravel)                    │
+│  │  ├─ Authentication & Scopes             │
+│  │  ├─ Multi-Tenant Scoping                │
+│  │  ├─ AI Agent Framework                  │
+│  │  └─ Audit Logging                       │
+│  └─────────────────────────────────────────┤
+│           ↓                                  │
+│  Modular Components                         │
+│  ├─ Blog (CRUD + AI Generation)            │
+│  ├─ Portfolio (CRUD + Optimization)        │
+│  ├─ Clinic (CRUD + Encryption)             │
+│  └─ Custom Modules                         │
+│           ↓                                  │
+│  Infrastructure                             │
+│  ├─ MySQL (Multi-Tenant DB)                │
+│  ├─ Redis (Cache + Rate Limiting)          │
+│  └─ Queue (Async Jobs)                     │
+│                                             │
+└─────────────────────────────────────────────┘
+```
+
+---
+
+## Use Cases
+
+### Content Agencies
+
+Generate 50+ blog posts/week with consistent brand voice. MAHIR agents write, optimize SEO, and format automatically.
+
+### Healthcare Providers
+
+Centralized patient management (appointments, consent forms, encrypted records) with HIPAA audit trails.
+
+### Design & Portfolio Studios
+
+Auto-generate portfolio descriptions, SEO tags, and marketing copy from project metadata.
+
+### E-Commerce (Coming)
+
+Product descriptions, inventory management, customer insights — all AI-powered.
+
+---
+
+## Technology Stack
+
+| Component | Technology | Why |
+|---|---|---|
+| Language | PHP 8.3 | Modern type system, performance |
+| Framework | Laravel 12 | Modern, elegant, AI-native |
+| Database | SQLite | Zero-config, lightweight, portable |
+| Queue | Database | Async jobs, cost tracking |
+| Cache | Database | Simple, no extra dependencies |
+| Frontend | Vite + Tailwind CSS 4 | Fast builds, utility-first styling |
+| Testing | Pest 4 | Modern assertions, fast feedback |
+| Code Style | Laravel Pint | Consistent, opinionated formatting |
+| Local Server | Laravel Herd | Zero-config PHP dev environment |
+
+---
+
+## Modules
+
+### Blog Module
+
+- Post CRUD (create, read, update, delete)
+- Categories, tags, SEO metadata
+- AI-powered content generation
+- Publish scheduling
+- Analytics tracking
+- Status: Stable & Open-Source
+
+### Portfolio Module
+
+- Project showcase with rich metadata
+- Technology stacks & skills
+- AI-powered description optimization
+- Portfolio analytics
+- Status: Stable & Open-Source
+
+### Clinic Module
+
+- Patient management (encrypted PII)
+- Appointment scheduling
+- Consent form workflows
+- HIPAA-compliant audit logs
+- Status: Stable (Basic) | Premium (Advanced)
+
+---
+
+## Getting Started
+
+### For Developers
+
+Soon
+
+### For Businesses
+
+Soon
+
+### For Contributors
+
+Soon
+
+---
+
+## Philosophy: Open-Source by Design
+
+**Transparency Over Black Boxes**
+Audit every line of code. Find vulnerabilities yourself. Contribute fixes that benefit everyone.
+
+**Community Over Silos**
+Enterprise software is better together. Our community improves MAHIR every day.
+
+**Data Sovereignty Over Hostage Ransom**
+Self-hosted MAHIR is yours forever. Export anytime. Migrate to cloud or back — your choice.
+
+**Ethics Over Exploitation**
+AGPL ensures fair competition. If someone uses MAHIR commercially, they share improvements back.
+
+---
+
+## Community
+
+- **GitHub Issues** — Report bugs, request features
+- **GitHub Discussions** — Ask questions, share ideas
+- **Discord** — Real-time chat, support, networking
+- **Twitter** — Updates, tips, announcements
+- **Blog** — Tutorials, case studies, deep dives
+
+---
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+MAHIR is **AGPL v3 licensed** — free and open-source.
+
+**What you can do:**
+
+- Use for personal/private projects
+- Self-host freely
+- Modify and extend
+- Commercial use (with exceptions)
+
+**What's required if you offer MAHIR as a service:**
+
+- Share your modifications back to the community
+
+[Read Full License →](./LICENSE)
+
+---
+
+## Support
+
+### Community (Free)
+
+- GitHub Issues & Discussions
+- Discord community channel
+- Public documentation
+
+### Priority Support (Paid)
+
+- Email support (Starter+)
+- Response time SLA
+- Custom development available
+
+---
+
+## Roadmap
+
+- **Q2 2025:** v0.1 — System core services
+- **Q3 2025:** v0.2 — System modules (Blog, Portfolio, Clinic)
+- **Q4 2025:** v0.3 — Enterprise features, AI model fine-tuning, marketplace
+
+---
+
+## FAQ
+
+**Q: Is MAHIR truly open-source?**
+A: Yes, AGPL v3 licensed. Full source code on GitHub.
+
+**Q: Can I self-host?**
+A: Yes, Docker Compose or Kubernetes. Own your infrastructure.
+
+**Q: What about data privacy?**
+A: Self-hosted data stays on your servers. Cloud SaaS is encrypted and tenant-isolated.
+
+**Q: Can I modify MAHIR?**
+A: Yes, full source code available. Share improvements under AGPL.
+
+**Q: Do you offer support?**
+A: Community (free) + paid support plans.
+
+---
+
+## Contributors
+
+We love contributions!
+
+- Found a bug? Open an issue
+- Built a feature? Submit a PR
+- Improved docs? We appreciate it
+- Have ideas? Join discussions
+
+---
+
+## Acknowledgments
+
+Built with love using:
+
+- **Laravel** — The PHP framework for artisans
+- **Laravel AI SDK** — Unified AI integration
+- **Open-source community** — For inspiration and support
+
+---
+
+## Get Started Now
+
+```bash
+# Self-Host
+git clone https://github.com/syahrinseth/mahir.git
+cd mahir
+docker-compose up
+
+# Or try Cloud (free, no credit card)
+# Visit https://mahir.syahrinseth.com
+```
+
+---
+
+Let's build the future of AI-powered enterprise software together.
+
+If MAHIR helps you, please star this repository!
