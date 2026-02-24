@@ -2,24 +2,35 @@
 
 namespace Database\Seeders;
 
-use App\Modules\Auth\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Modules\Tenancy\Models\Tenant;
+use Database\Seeders\Landlord\LandlordSeeder;
+use Database\Seeders\Tenant\TenantSeeder;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
-     * Seed the application's database.
+     * Seed the landlord database, then seed each tenant's database.
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $this->call(LandlordSeeder::class);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $createTenantAction = app()->make(\App\Modules\Tenancy\Actions\CreateTenantAction::class);
+        $createTenantAction->execute([
+            'name' => 'Test',
+            'slug' => 'test',
+            'domain' => 'test.' . config('multitenancy.base_domain'),
         ]);
+
+        Tenant::query()->where('is_active', true)->each(function (Tenant $tenant): void {
+            $this->command->info("Seeding tenant: {$tenant->name} ({$tenant->domain})");
+
+            $tenant->makeCurrent();
+
+            $this->call(TenantSeeder::class);
+        });
+
+        Tenant::forgetCurrent();
     }
 }
