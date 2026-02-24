@@ -20,11 +20,17 @@ class CreateSubscriptionRequest extends FormRequest
     public function rules(): array
     {
         return [
+            /** The ID of the tenant this subscription belongs to. */
             'tenant_id' => ['required', 'integer', 'exists:landlord.tenants,id'],
+            /** The subscription plan type. */
             'plan' => ['required', 'string', Rule::enum(PlanType::class)],
+            /** The initial status of the subscription. Defaults to "trial" if not provided. */
             'status' => ['sometimes', 'string', Rule::enum(SubscriptionStatus::class)],
+            /** The date and time when the trial period ends. */
             'trial_ends_at' => ['nullable', 'date'],
+            /** The date and time when the subscription starts. */
             'starts_at' => ['nullable', 'date'],
+            /** The date and time when the subscription ends. */
             'ends_at' => ['nullable', 'date'],
         ];
     }

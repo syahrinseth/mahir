@@ -17,8 +17,11 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
+            /** The user's email address. */
             'email' => ['required', 'string', 'email'],
+            /** The user's password. */
             'password' => ['required', 'string'],
+            /** The name of the device requesting the token. Defaults to "default" if not provided. */
             'device_name' => ['sometimes', 'string', 'max:255'],
         ];
     }

@@ -17,8 +17,11 @@ class CreateTenantRequest extends FormRequest
     public function rules(): array
     {
         return [
+            /** The display name of the tenant. */
             'name' => ['required', 'string', 'max:255'],
+            /** A URL-friendly identifier for the tenant. Must be unique and contain only alphanumeric characters, dashes, and underscores. */
             'slug' => ['required', 'string', 'max:255', 'unique:landlord.tenants,slug', 'alpha_dash'],
+            /** The subdomain for the tenant. Must be unique across all tenants. */
             'domain' => ['required', 'string', 'max:255', 'unique:landlord.tenants,domain'],
         ];
     }

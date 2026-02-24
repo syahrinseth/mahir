@@ -20,10 +20,15 @@ class UpdateSubscriptionRequest extends FormRequest
     public function rules(): array
     {
         return [
+            /** The subscription plan type. */
             'plan' => ['sometimes', 'string', Rule::enum(PlanType::class)],
+            /** The status of the subscription. */
             'status' => ['sometimes', 'string', Rule::enum(SubscriptionStatus::class)],
+            /** The date and time when the trial period ends. */
             'trial_ends_at' => ['nullable', 'date'],
+            /** The date and time when the subscription starts. */
             'starts_at' => ['nullable', 'date'],
+            /** The date and time when the subscription ends. */
             'ends_at' => ['nullable', 'date'],
         ];
     }

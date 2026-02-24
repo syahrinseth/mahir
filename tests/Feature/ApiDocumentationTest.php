@@ -1,0 +1,160 @@
+<?php
+
+use Dedoc\Scramble\Http\Middleware\RestrictedDocsAccess;
+
+beforeEach(function () {
+    $this->withoutMiddleware(RestrictedDocsAccess::class);
+});
+
+test('api documentation ui page loads successfully', function () {
+    $response = $this->get('/docs/api');
+
+    $response->assertSuccessful();
+});
+
+test('api documentation json spec loads successfully', function () {
+    $response = $this->getJson('/docs/api.json');
+
+    $response->assertSuccessful()
+        ->assertJsonStructure([
+            'openapi',
+            'info' => ['title', 'version'],
+            'paths',
+            'components',
+        ]);
+});
+
+test('api spec contains correct openapi version', function () {
+    $response = $this->getJson('/docs/api.json');
+
+    $response->assertSuccessful();
+
+    $spec = $response->json();
+
+    expect($spec['openapi'])->toStartWith('3.1.');
+});
+
+test('api spec contains correct api info', function () {
+    $response = $this->getJson('/docs/api.json');
+
+    $spec = $response->json();
+
+    expect($spec['info']['version'])->toBe('1.0.0')
+        ->and($spec['info']['title'])->not->toBeEmpty();
+});
+
+test('api spec contains bearer authentication security scheme', function () {
+    $response = $this->getJson('/docs/api.json');
+
+    $spec = $response->json();
+
+    expect($spec['components']['securitySchemes'])->toHaveKey('http')
+        ->and($spec['components']['securitySchemes']['http']['type'])->toBe('http')
+        ->and($spec['components']['securitySchemes']['http']['scheme'])->toBe('bearer');
+});
+
+test('api spec documents all auth endpoints', function () {
+    $response = $this->getJson('/docs/api.json');
+
+    $paths = $response->json('paths');
+
+    expect($paths)->toHaveKey('/auth/register')
+        ->toHaveKey('/auth/login')
+        ->toHaveKey('/auth/logout')
+        ->toHaveKey('/auth/user');
+});
+
+test('api spec documents all tenant endpoints', function () {
+    $response = $this->getJson('/docs/api.json');
+
+    $paths = $response->json('paths');
+
+    expect($paths)->toHaveKey('/tenants')
+        ->toHaveKey('/tenants/{tenant}');
+});
+
+test('api spec documents all subscription endpoints', function () {
+    $response = $this->getJson('/docs/api.json');
+
+    $paths = $response->json('paths');
+
+    expect($paths)->toHaveKey('/subscriptions')
+        ->toHaveKey('/subscriptions/{id}');
+});
+
+test('api spec marks register and login as unauthenticated', function () {
+    $response = $this->getJson('/docs/api.json');
+
+    $paths = $response->json('paths');
+
+    $registerSecurity = $paths['/auth/register']['post']['security'] ?? null;
+    $loginSecurity = $paths['/auth/login']['post']['security'] ?? null;
+
+    expect($registerSecurity)->toBe([])
+        ->and($loginSecurity)->toBe([]);
+});
+
+test('api spec includes validation error responses', function () {
+    $response = $this->getJson('/docs/api.json');
+
+    $paths = $response->json('paths');
+
+    $registerResponses = array_keys($paths['/auth/register']['post']['responses']);
+    $loginResponses = array_keys($paths['/auth/login']['post']['responses']);
+
+    expect($registerResponses)->toContain(422)
+        ->and($loginResponses)->toContain(422);
+});
+
+test('api spec groups endpoints by tag', function () {
+    $response = $this->getJson('/docs/api.json');
+
+    $paths = $response->json('paths');
+
+    $registerTags = $paths['/auth/register']['post']['tags'] ?? [];
+    $tenantIndexTags = $paths['/tenants']['get']['tags'] ?? [];
+    $subscriptionIndexTags = $paths['/subscriptions']['get']['tags'] ?? [];
+
+    expect($registerTags)->toContain('Auth')
+        ->and($tenantIndexTags)->toContain('Tenants')
+        ->and($subscriptionIndexTags)->toContain('Subscriptions');
+});
+
+test('api spec documents request body fields for register endpoint', function () {
+    $response = $this->getJson('/docs/api.json');
+
+    $spec = $response->json();
+
+    $registerSchema = $spec['components']['schemas']['RegisterRequest'] ?? null;
+
+    expect($registerSchema)->not->toBeNull()
+        ->and($registerSchema['properties'])->toHaveKey('name')
+        ->and($registerSchema['properties'])->toHaveKey('email')
+        ->and($registerSchema['properties'])->toHaveKey('password')
+        ->and($registerSchema['properties']['name']['description'])->not->toBeEmpty()
+        ->and($registerSchema['properties']['email']['description'])->not->toBeEmpty()
+        ->and($registerSchema['properties']['password']['description'])->not->toBeEmpty();
+});
+
+test('api spec documents the total expected number of path entries', function () {
+    $response = $this->getJson('/docs/api.json');
+
+    $paths = $response->json('paths');
+
+    // ping, auth/register, auth/login, auth/logout, auth/user,
+    // tenants (index+store), tenants/{tenant} (show+update+destroy),
+    // subscriptions (index+store), subscriptions/{id} (show+update+destroy)
+    expect(count($paths))->toBe(9);
+});
+
+test('api docs ui returns 404 on admin subdomain', function () {
+    $response = $this->get('http://admin.mahir.test/docs/api');
+
+    $response->assertNotFound();
+});
+
+test('api docs json returns 404 on admin subdomain', function () {
+    $response = $this->getJson('http://admin.mahir.test/docs/api.json');
+
+    $response->assertNotFound();
+});
