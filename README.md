@@ -3,6 +3,8 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![GitHub Stars](https://img.shields.io/github/stars/syahrinseth/mahir?style=social)](https://github.com/syahrinseth/mahir)
 
+> **[Read the full documentation](./docs/README.md)** — Architecture, developer guide, API reference, and more.
+
 ---
 
 ## What is MAHIR?
