@@ -25,7 +25,7 @@ class SubscriptionsTable
                     ->sortable(),
                 TextColumn::make('status')
                     ->badge()
-                    ->color(fn (string $state): string => SubscriptionStatus::tryFrom($state)?->color() ?? 'gray')
+                    ->color(fn (SubscriptionStatus $state): string => $state->color() ?? 'gray')
                     ->sortable(),
                 TextColumn::make('trial_ends_at')
                     ->dateTime()
