@@ -71,7 +71,8 @@ This triggers `CreateTenantAction` which:
 2. Creates the MySQL database
 3. Creates the tenant record in landlord DB
 4. Runs tenant migrations on the new database
-5. Fires `TenantCreated` event
+5. Runs tenant seeders (roles, permissions, default users)
+6. Fires `TenantCreated` event
 
 ### Via Admin Panel
 
@@ -79,14 +80,57 @@ Navigate to `admin.mahir.test` > Tenants > Create. Fill in name (slug/domain/dat
 
 ---
 
-## Migrations
+## Migrations & Seeders
 
-| Directory | Target | Command |
-|-----------|--------|---------|
-| `database/migrations/landlord/` | Landlord DB | `php artisan migrate --database=landlord` |
-| `database/migrations/tenant/` | All tenant DBs | Via `CreateTenantAction` or `tenants:artisan "migrate"` |
+Both migration paths are registered in `AppServiceProvider::boot()` via `loadMigrationsFrom()`. Landlord and tenant seeders are **completely separate** — no context detection logic.
 
-Both paths are registered in `AppServiceProvider::boot()`.
+> **Note:** Laravel does NOT auto-route migrations by folder name. You must use both `--database` and `--path` flags together when running manually. `CreateTenantAction` handles this automatically for tenants.
+
+### Landlord Database
+
+```bash
+# Step 1: Run landlord migrations
+php artisan migrate --database=landlord --path=database/migrations/landlord
+
+# Step 2: Seed landlord (admin users for Filament panel)
+php artisan db:seed
+```
+
+| Step | Directory / Seeder | What it does |
+|------|--------------------|--------------|
+| 1 | `database/migrations/landlord/` | Creates tenants, admin_users, subscriptions, sessions, cache, jobs tables |
+| 2 | `DatabaseSeeder` → `LandlordSeeder` | Seeds admin users for the Filament panel |
+
+### Tenant Database
+
+For **new tenants**, `CreateTenantAction` handles everything automatically (migrations + seeders). To run manually on existing tenants:
+
+```bash
+# Step 1: Run tenant migrations (all tenants)
+php artisan tenants:artisan "migrate --database=tenant --path=database/migrations/tenant --force"
+
+# Step 2: Seed tenant (roles, permissions, users)
+php artisan tenants:artisan "db:seed --class=Database\\Seeders\\Tenant\\TenantSeeder"
+```
+
+| Step | Directory / Seeder | What it does |
+|------|--------------------|--------------|
+| 1 | `database/migrations/tenant/` | Creates users, personal_access_tokens, roles, permissions tables |
+| 2 | `TenantSeeder` | Seeds roles, permissions, and default users |
+
+### Spatie Permission Connection Gotcha
+
+Spatie Permission models use the **default** DB connection (`landlord`), but permission tables live in **tenant** databases. `TenantSeeder` works around this by temporarily switching the default connection:
+
+```php
+$originalConnection = DB::getDefaultConnection();
+DB::setDefaultConnection('tenant');
+try {
+    // seed roles & permissions
+} finally {
+    DB::setDefaultConnection($originalConnection);
+}
+```
 
 ---
 

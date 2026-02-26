@@ -27,14 +27,14 @@ npm install
 cp .env.example .env
 php artisan key:generate
 
-# 3. Create databases
-# Create two MySQL databases: mahir_landlord and one tenant DB (e.g. mahir_tenant_demo)
+# 3. Create the landlord MySQL database: mahir_landlord
 
-# 4. Run landlord migrations
-php artisan migrate --database=landlord
-
-# 5. Seed (optional)
+# 4. Migrate and seed landlord database
+php artisan migrate --database=landlord --path=database/migrations/landlord
 php artisan db:seed
+
+# 5. Create a tenant (via API or Filament admin panel)
+# CreateTenantAction automatically creates the tenant DB, runs migrations, and seeds
 
 # 6. Build frontend assets
 npm run build
@@ -81,6 +81,28 @@ php artisan list
 
 # List all routes
 php artisan route:list
+```
+
+### Landlord: Migrate & Seed
+
+```bash
+# Step 1: Run landlord migrations
+php artisan migrate --database=landlord --path=database/migrations/landlord
+
+# Step 2: Seed landlord (admin users for Filament panel)
+php artisan db:seed
+```
+
+### Tenant: Migrate & Seed
+
+New tenants are fully provisioned by `CreateTenantAction` (DB creation + migrations + seeders). To run manually on existing tenants:
+
+```bash
+# Step 1: Run tenant migrations (all tenants)
+php artisan tenants:artisan "migrate --database=tenant --path=database/migrations/tenant --force"
+
+# Step 2: Seed tenant (roles, permissions, users)
+php artisan tenants:artisan "db:seed --class=Database\\Seeders\\Tenant\\TenantSeeder"
 ```
 
 ---

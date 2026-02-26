@@ -726,7 +726,7 @@ Only add `Actions/`, `Enums/`, `Events/`, `Listeners/`, `Filament/` if needed.
 
 - Landlord tables: `database/migrations/landlord/`
 - Tenant tables: `database/migrations/tenant/`
-- Run with `php artisan migrate --database=landlord` or via tenant artisan
+- Run with `php artisan migrate --database=landlord --path=database/migrations/landlord` or via tenant artisan
 
 ### Step 5: Create DTOs
 

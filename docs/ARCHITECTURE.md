@@ -53,9 +53,13 @@ database/
 ├── factories/                        # Eloquent model factories
 ├── migrations/
 │   ├── landlord/                     # Landlord DB tables (tenants, admin_users, subscriptions, etc.)
-│   ├── tenant/                       # Tenant DB tables (users, personal_access_tokens)
-│   └── _legacy/                      # Old default Laravel migrations (unused)
+│   └── tenant/                       # Tenant DB tables (users, personal_access_tokens)
 └── seeders/
+    ├── DatabaseSeeder.php            # Entry point — calls LandlordSeeder only
+    ├── landlord/
+    │   └── LandlordSeeder.php        # Seeds admin users for Filament panel
+    └── tenant/
+        └── TenantSeeder.php          # Seeds roles, permissions, users for a tenant
 
 routes/
 ├── api.php                           # Versioned API routes (v1) — auth, tenants, subscriptions
@@ -241,14 +245,31 @@ Request to {slug}.mahir.test/api/v1/*
 
 Reserved subdomains that skip tenant resolution: `admin`, `www`
 
-### Migrations
+### Migrations & Seeders
 
-| Directory | Target | How to Run |
-|-----------|--------|-----------|
-| `database/migrations/landlord/` | `mahir_landlord` | `--database=landlord` |
-| `database/migrations/tenant/` | Each tenant DB | Via `CreateTenantAction` or `tenants:artisan "migrate"` |
+Both migration paths are registered in `AppServiceProvider::boot()` via `loadMigrationsFrom()`. Landlord and tenant seeders are completely separate — `DatabaseSeeder` only calls `LandlordSeeder`.
 
-Both paths are registered in `AppServiceProvider::boot()` via `loadMigrationsFrom()`.
+> **Note:** Laravel does NOT auto-route migrations by folder name. When running manually, use both `--database` and `--path` flags.
+
+**Landlord:**
+
+```bash
+# Step 1: Migrate
+php artisan migrate --database=landlord --path=database/migrations/landlord
+
+# Step 2: Seed (admin users)
+php artisan db:seed
+```
+
+**Tenant** (for existing tenants — new tenants are fully provisioned by `CreateTenantAction`):
+
+```bash
+# Step 1: Migrate
+php artisan tenants:artisan "migrate --database=tenant --path=database/migrations/tenant --force"
+
+# Step 2: Seed (roles, permissions, users)
+php artisan tenants:artisan "db:seed --class=Database\\Seeders\\Tenant\\TenantSeeder"
+```
 
 ## Authentication
 

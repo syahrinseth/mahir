@@ -43,9 +43,12 @@ test('listing tenants returns empty array when none exist', function () {
 test('can create a tenant', function () {
     $mockDbService = Mockery::mock(TenantDatabaseService::class);
     $mockDbService->shouldReceive('generateDatabaseName')
-        ->once()
         ->with('acme-corp')
         ->andReturn('mahir_tenant_acme_corp');
+    $mockDbService->shouldReceive('databaseExists')
+        ->once()
+        ->with('mahir_tenant_acme_corp')
+        ->andReturn(false);
     $mockDbService->shouldReceive('createDatabase')
         ->once()
         ->with('mahir_tenant_acme_corp');
@@ -57,6 +60,19 @@ test('can create a tenant', function () {
             return $command === 'tenants:artisan'
                 && str_contains($params['artisanCommand'], 'migrate');
         });
+
+    Artisan::shouldReceive('output')
+        ->andReturn('');
+
+    Artisan::shouldReceive('call')
+        ->once()
+        ->withArgs(function (string $command, array $params): bool {
+            return $command === 'tenants:artisan'
+                && str_contains($params['artisanCommand'], 'db:seed');
+        });
+
+    Artisan::shouldReceive('output')
+        ->andReturn('');
 
     $response = $this->postJson('/api/v1/tenants', [
         'name' => 'Acme Corp',
