@@ -8,7 +8,7 @@ use App\Modules\Auth\Models\User;
 /**
  * Policy for authorizing actions on articles.
  *
- * Any authenticated user can view and create articles.
+ * Tenant users can view and create articles freely.
  * Only the article author can update, delete, publish, or archive.
  */
 class ArticlePolicy

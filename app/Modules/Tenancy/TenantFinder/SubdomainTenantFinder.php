@@ -36,6 +36,17 @@ class SubdomainTenantFinder extends TenantFinder
     }
 
     /**
+     * Determine if the request requires tenant resolution.
+     *
+     * Returns false for requests to the base domain or reserved subdomains
+     * (e.g. "admin.mahir.test", "www.mahir.test", "mahir.test").
+     */
+    public function requiresTenant(Request $request): bool
+    {
+        return $this->extractSubdomain($request) !== null;
+    }
+
+    /**
      * Extract the tenant slug from the request host.
      *
      * For "api.acme.mahir.test" → "acme"

@@ -8,7 +8,7 @@ use App\Modules\Auth\Models\User;
 /**
  * Policy for authorizing actions on article comments.
  *
- * Any authenticated user can view and create comments.
+ * Any authenticated tenant user can view and create comments.
  * Only the comment author or the article author can delete a comment.
  */
 class ArticleCommentPolicy
