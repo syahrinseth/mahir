@@ -5,6 +5,9 @@ use App\Modules\Article\Http\Controllers\ArticleController;
 use App\Modules\Article\Http\Controllers\ArticleRevisionController;
 use App\Modules\Article\Http\Controllers\ArticleSeriesController;
 use App\Modules\Auth\Http\Controllers\AuthController;
+use App\Modules\Portfolio\Http\Controllers\PortfolioCategoryController;
+use App\Modules\Portfolio\Http\Controllers\PortfolioController;
+use App\Modules\Portfolio\Http\Controllers\PortfolioMediaController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -77,4 +80,38 @@ Route::middleware('auth:sanctum')->prefix('article-series')->group(function () {
     Route::get('/{series}', [ArticleSeriesController::class, 'show'])->name('api.article-series.show');
     Route::put('/{series}', [ArticleSeriesController::class, 'update'])->name('api.article-series.update');
     Route::delete('/{series}', [ArticleSeriesController::class, 'destroy'])->name('api.article-series.destroy');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Portfolio Routes (Tenant-scoped, requires auth)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth:sanctum')->prefix('portfolios')->group(function () {
+    Route::get('/', [PortfolioController::class, 'index'])->name('api.portfolios.index');
+    Route::post('/', [PortfolioController::class, 'store'])->name('api.portfolios.store');
+    Route::get('/{portfolio}', [PortfolioController::class, 'show'])->name('api.portfolios.show');
+    Route::put('/{portfolio}', [PortfolioController::class, 'update'])->name('api.portfolios.update');
+    Route::delete('/{portfolio}', [PortfolioController::class, 'destroy'])->name('api.portfolios.destroy');
+    Route::post('/{portfolio}/publish', [PortfolioController::class, 'publish'])->name('api.portfolios.publish');
+    Route::post('/{portfolio}/archive', [PortfolioController::class, 'archive'])->name('api.portfolios.archive');
+
+    // Portfolio Media
+    Route::get('/{portfolio}/media', [PortfolioMediaController::class, 'index'])->name('api.portfolios.media.index');
+    Route::post('/{portfolio}/media', [PortfolioMediaController::class, 'store'])->name('api.portfolios.media.store');
+    Route::delete('/{portfolio}/media/{media}', [PortfolioMediaController::class, 'destroy'])->name('api.portfolios.media.destroy');
+    Route::put('/{portfolio}/media/reorder', [PortfolioMediaController::class, 'reorder'])->name('api.portfolios.media.reorder');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Portfolio Category Routes (Tenant-scoped, requires auth)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth:sanctum')->prefix('portfolio-categories')->group(function () {
+    Route::get('/', [PortfolioCategoryController::class, 'index'])->name('api.portfolio-categories.index');
+    Route::post('/', [PortfolioCategoryController::class, 'store'])->name('api.portfolio-categories.store');
+    Route::get('/{category}', [PortfolioCategoryController::class, 'show'])->name('api.portfolio-categories.show');
+    Route::put('/{category}', [PortfolioCategoryController::class, 'update'])->name('api.portfolio-categories.update');
+    Route::delete('/{category}', [PortfolioCategoryController::class, 'destroy'])->name('api.portfolio-categories.destroy');
 });
