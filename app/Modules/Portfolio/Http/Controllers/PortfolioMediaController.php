@@ -89,14 +89,14 @@ class PortfolioMediaController extends Controller
             abort(404, 'Portfolio not found.');
         }
 
-        $request->validate([
+        $validated = $request->validate([
             /** Ordered list of media IDs. */
             'media_ids' => ['required', 'array'],
             /** Each media ID. */
             'media_ids.*' => ['integer'],
         ]);
 
-        $this->portfolioService->reorderMedia($portfolioId, $request->validated('media_ids'));
+        $this->portfolioService->reorderMedia($portfolioId, $validated['media_ids']);
 
         return response()->json(['message' => 'Media reordered successfully.']);
     }

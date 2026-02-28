@@ -133,8 +133,13 @@ test('api spec documents the total expected number of path entries', function ()
     // articles/{article}/comments (index+store), articles/{article}/comments/{comment} (destroy),
     // articles/{article}/revisions (index), articles/{article}/revisions/{revision} (show),
     // articles/{article}/restore-revision/{revision} (restore),
-    // article-series (index+store), article-series/{series} (show+update+destroy)
-    expect(count($paths))->toBe(16);
+    // article-series (index+store), article-series/{series} (show+update+destroy),
+    // portfolios (index+store), portfolios/{portfolio} (show+update+destroy),
+    // portfolios/{portfolio}/publish, portfolios/{portfolio}/archive,
+    // portfolios/{portfolio}/media (index+store), portfolios/{portfolio}/media/{media} (destroy),
+    // portfolios/{portfolio}/media/reorder,
+    // portfolio-categories (index+store), portfolio-categories/{category} (show+update+destroy)
+    expect(count($paths))->toBe(25);
 });
 
 test('api docs ui returns 404 on admin subdomain', function () {

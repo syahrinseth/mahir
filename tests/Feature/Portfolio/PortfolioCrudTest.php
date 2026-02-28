@@ -1,0 +1,275 @@
+<?php
+
+use App\Http\Middleware\IdentifyTenant;
+use App\Modules\Auth\Models\User;
+use App\Modules\Portfolio\Enums\PortfolioStatus;
+use App\Modules\Portfolio\Models\Portfolio;
+use App\Modules\Portfolio\Models\PortfolioCategory;
+
+beforeEach(function () {
+    $this->withoutMiddleware(IdentifyTenant::class);
+    $this->user = User::factory()->create();
+    $this->actingAs($this->user, 'sanctum');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Index
+|--------------------------------------------------------------------------
+*/
+
+test('can list all portfolios', function () {
+    Portfolio::factory()->count(3)->create(['user_id' => $this->user->id]);
+
+    $response = $this->getJson('/api/v1/portfolios');
+
+    $response->assertSuccessful()
+        ->assertJsonCount(3, 'data');
+});
+
+test('listing portfolios returns empty array when none exist', function () {
+    $response = $this->getJson('/api/v1/portfolios');
+
+    $response->assertSuccessful()
+        ->assertJsonCount(0, 'data');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Store
+|--------------------------------------------------------------------------
+*/
+
+test('can create a portfolio', function () {
+    $response = $this->postJson('/api/v1/portfolios', [
+        'title' => 'My First Portfolio',
+        'slug' => 'my-first-portfolio',
+        'description' => 'A showcase of my best work.',
+        'status' => PortfolioStatus::Draft->value,
+    ]);
+
+    $response->assertCreated()
+        ->assertJsonPath('message', 'Portfolio created successfully.')
+        ->assertJsonPath('data.title', 'My First Portfolio')
+        ->assertJsonPath('data.slug', 'my-first-portfolio')
+        ->assertJsonPath('data.status', PortfolioStatus::Draft->value)
+        ->assertJsonPath('data.user_id', $this->user->id);
+});
+
+test('can create a portfolio with auto-generated slug', function () {
+    $response = $this->postJson('/api/v1/portfolios', [
+        'title' => 'Auto Slug Portfolio',
+        'description' => 'Description for auto slug.',
+    ]);
+
+    $response->assertCreated()
+        ->assertJsonPath('data.slug', 'auto-slug-portfolio');
+});
+
+test('can create a portfolio in a category', function () {
+    $category = PortfolioCategory::factory()->create(['user_id' => $this->user->id]);
+
+    $response = $this->postJson('/api/v1/portfolios', [
+        'title' => 'Categorized Portfolio',
+        'description' => 'Portfolio in a category.',
+        'category_id' => $category->id,
+    ]);
+
+    $response->assertCreated()
+        ->assertJsonPath('data.category_id', $category->id);
+});
+
+test('can create a portfolio with technologies', function () {
+    $response = $this->postJson('/api/v1/portfolios', [
+        'title' => 'Tech Portfolio',
+        'description' => 'Portfolio with technologies.',
+        'technologies' => ['Laravel', 'React', 'Tailwind CSS'],
+    ]);
+
+    $response->assertCreated()
+        ->assertJsonPath('data.technologies', ['Laravel', 'React', 'Tailwind CSS']);
+});
+
+test('can create a portfolio with client info', function () {
+    $response = $this->postJson('/api/v1/portfolios', [
+        'title' => 'Client Portfolio',
+        'description' => 'Portfolio for a client.',
+        'client_name' => 'Acme Corp',
+        'project_url' => 'https://acme.example.com',
+    ]);
+
+    $response->assertCreated()
+        ->assertJsonPath('data.client_name', 'Acme Corp')
+        ->assertJsonPath('data.project_url', 'https://acme.example.com');
+});
+
+test('creating portfolio fails without title', function () {
+    $response = $this->postJson('/api/v1/portfolios', [
+        'description' => 'No title provided.',
+    ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['title']);
+});
+
+test('creating portfolio fails without description', function () {
+    $response = $this->postJson('/api/v1/portfolios', [
+        'title' => 'Missing Description',
+    ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['description']);
+});
+
+test('creating portfolio fails with invalid status', function () {
+    $response = $this->postJson('/api/v1/portfolios', [
+        'title' => 'Bad Status',
+        'description' => 'Some description.',
+        'status' => 'nonexistent-status',
+    ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['status']);
+});
+
+test('creating portfolio fails with invalid project url', function () {
+    $response = $this->postJson('/api/v1/portfolios', [
+        'title' => 'Bad URL',
+        'description' => 'Some description.',
+        'project_url' => 'not-a-url',
+    ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['project_url']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Show
+|--------------------------------------------------------------------------
+*/
+
+test('can show a portfolio', function () {
+    $portfolio = Portfolio::factory()->create(['user_id' => $this->user->id]);
+
+    $response = $this->getJson("/api/v1/portfolios/{$portfolio->id}");
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.id', $portfolio->id)
+        ->assertJsonPath('data.title', $portfolio->title);
+});
+
+test('showing a non-existent portfolio returns 404', function () {
+    $response = $this->getJson('/api/v1/portfolios/99999');
+
+    $response->assertNotFound();
+});
+
+/*
+|--------------------------------------------------------------------------
+| Update
+|--------------------------------------------------------------------------
+*/
+
+test('can update a portfolio', function () {
+    $portfolio = Portfolio::factory()->create(['user_id' => $this->user->id]);
+
+    $response = $this->putJson("/api/v1/portfolios/{$portfolio->id}", [
+        'title' => 'Updated Title',
+    ]);
+
+    $response->assertSuccessful()
+        ->assertJsonPath('message', 'Portfolio updated successfully.')
+        ->assertJsonPath('data.title', 'Updated Title');
+});
+
+test('updating a non-existent portfolio returns 404', function () {
+    $response = $this->putJson('/api/v1/portfolios/99999', [
+        'title' => 'Updated Title',
+    ]);
+
+    $response->assertNotFound();
+});
+
+/*
+|--------------------------------------------------------------------------
+| Destroy
+|--------------------------------------------------------------------------
+*/
+
+test('can delete a portfolio', function () {
+    $portfolio = Portfolio::factory()->create(['user_id' => $this->user->id]);
+
+    $response = $this->deleteJson("/api/v1/portfolios/{$portfolio->id}");
+
+    $response->assertSuccessful()
+        ->assertJsonPath('message', 'Portfolio deleted successfully.');
+
+    $this->assertDatabaseMissing('portfolios', ['id' => $portfolio->id]);
+});
+
+test('deleting a non-existent portfolio returns 404', function () {
+    $response = $this->deleteJson('/api/v1/portfolios/99999');
+
+    $response->assertNotFound();
+});
+
+/*
+|--------------------------------------------------------------------------
+| Publish
+|--------------------------------------------------------------------------
+*/
+
+test('can publish a draft portfolio', function () {
+    $portfolio = Portfolio::factory()->draft()->create(['user_id' => $this->user->id]);
+
+    $response = $this->postJson("/api/v1/portfolios/{$portfolio->id}/publish");
+
+    $response->assertSuccessful()
+        ->assertJsonPath('message', 'Portfolio published successfully.')
+        ->assertJsonPath('data.status', PortfolioStatus::Published->value);
+
+    expect($portfolio->fresh()->published_at)->not->toBeNull();
+});
+
+test('publishing a non-existent portfolio returns 404', function () {
+    $response = $this->postJson('/api/v1/portfolios/99999/publish');
+
+    $response->assertNotFound();
+});
+
+/*
+|--------------------------------------------------------------------------
+| Archive
+|--------------------------------------------------------------------------
+*/
+
+test('can archive a published portfolio', function () {
+    $portfolio = Portfolio::factory()->published()->create(['user_id' => $this->user->id]);
+
+    $response = $this->postJson("/api/v1/portfolios/{$portfolio->id}/archive");
+
+    $response->assertSuccessful()
+        ->assertJsonPath('message', 'Portfolio archived successfully.')
+        ->assertJsonPath('data.status', PortfolioStatus::Archived->value);
+});
+
+test('archiving a non-existent portfolio returns 404', function () {
+    $response = $this->postJson('/api/v1/portfolios/99999/archive');
+
+    $response->assertNotFound();
+});
+
+/*
+|--------------------------------------------------------------------------
+| Auth
+|--------------------------------------------------------------------------
+*/
+
+test('unauthenticated user cannot access portfolios', function () {
+    $this->app['auth']->forgetGuards();
+
+    $response = $this->getJson('/api/v1/portfolios');
+
+    $response->assertUnauthorized();
+});
