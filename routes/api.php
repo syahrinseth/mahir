@@ -5,8 +5,6 @@ use App\Modules\Article\Http\Controllers\ArticleController;
 use App\Modules\Article\Http\Controllers\ArticleRevisionController;
 use App\Modules\Article\Http\Controllers\ArticleSeriesController;
 use App\Modules\Auth\Http\Controllers\AuthController;
-use App\Modules\Subscription\Http\Controllers\SubscriptionController;
-use App\Modules\Tenancy\Http\Controllers\TenantController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -41,32 +39,6 @@ Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout'])->name('api.auth.logout');
         Route::get('/user', [AuthController::class, 'user'])->name('api.auth.user');
     });
-});
-
-/*
-|--------------------------------------------------------------------------
-| Tenant Management Routes (Landlord-scoped, requires auth)
-|--------------------------------------------------------------------------
-*/
-Route::middleware('auth:sanctum')->prefix('tenants')->group(function () {
-    Route::get('/', [TenantController::class, 'index'])->name('api.tenants.index');
-    Route::post('/', [TenantController::class, 'store'])->name('api.tenants.store');
-    Route::get('/{tenant}', [TenantController::class, 'show'])->name('api.tenants.show');
-    Route::put('/{tenant}', [TenantController::class, 'update'])->name('api.tenants.update');
-    Route::delete('/{tenant}', [TenantController::class, 'destroy'])->name('api.tenants.destroy');
-});
-
-/*
-|--------------------------------------------------------------------------
-| Subscription Routes (Landlord-scoped, requires auth)
-|--------------------------------------------------------------------------
-*/
-Route::middleware('auth:sanctum')->prefix('subscriptions')->group(function () {
-    Route::get('/', [SubscriptionController::class, 'index'])->name('api.subscriptions.index');
-    Route::post('/', [SubscriptionController::class, 'store'])->name('api.subscriptions.store');
-    Route::get('/{subscription}', [SubscriptionController::class, 'show'])->name('api.subscriptions.show');
-    Route::put('/{subscription}', [SubscriptionController::class, 'update'])->name('api.subscriptions.update');
-    Route::delete('/{subscription}', [SubscriptionController::class, 'destroy'])->name('api.subscriptions.destroy');
 });
 
 /*

@@ -72,24 +72,6 @@ test('api spec documents all auth endpoints', function () {
         ->toHaveKey('/auth/user');
 });
 
-test('api spec documents all tenant endpoints', function () {
-    $response = $this->getJson($this->tenantBaseUrl.'/docs/api.json');
-
-    $paths = $response->json('paths');
-
-    expect($paths)->toHaveKey('/tenants')
-        ->toHaveKey('/tenants/{tenant}');
-});
-
-test('api spec documents all subscription endpoints', function () {
-    $response = $this->getJson($this->tenantBaseUrl.'/docs/api.json');
-
-    $paths = $response->json('paths');
-
-    expect($paths)->toHaveKey('/subscriptions')
-        ->toHaveKey('/subscriptions/{id}');
-});
-
 test('api spec marks register and login as unauthenticated', function () {
     $response = $this->getJson($this->tenantBaseUrl.'/docs/api.json');
 
@@ -120,12 +102,8 @@ test('api spec groups endpoints by tag', function () {
     $paths = $response->json('paths');
 
     $registerTags = $paths['/auth/register']['post']['tags'] ?? [];
-    $tenantIndexTags = $paths['/tenants']['get']['tags'] ?? [];
-    $subscriptionIndexTags = $paths['/subscriptions']['get']['tags'] ?? [];
 
-    expect($registerTags)->toContain('Auth')
-        ->and($tenantIndexTags)->toContain('Tenants')
-        ->and($subscriptionIndexTags)->toContain('Subscriptions');
+    expect($registerTags)->toContain('Auth');
 });
 
 test('api spec documents request body fields for register endpoint', function () {
@@ -150,15 +128,13 @@ test('api spec documents the total expected number of path entries', function ()
     $paths = $response->json('paths');
 
     // ping, auth/register, auth/login, auth/logout, auth/user,
-    // tenants (index+store), tenants/{tenant} (show+update+destroy),
-    // subscriptions (index+store), subscriptions/{subscription} (show+update+destroy),
     // articles (index+store), articles/{article} (show+update+destroy),
     // articles/{article}/publish, articles/{article}/archive,
     // articles/{article}/comments (index+store), articles/{article}/comments/{comment} (destroy),
     // articles/{article}/revisions (index), articles/{article}/revisions/{revision} (show),
     // articles/{article}/restore-revision/{revision} (restore),
     // article-series (index+store), article-series/{series} (show+update+destroy)
-    expect(count($paths))->toBe(20);
+    expect(count($paths))->toBe(16);
 });
 
 test('api docs ui returns 404 on admin subdomain', function () {
