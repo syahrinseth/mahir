@@ -33,6 +33,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Modules/Auth/Filament/Resources'), for: 'App\\Modules\\Auth\\Filament\\Resources')
             ->discoverResources(in: app_path('Modules/Subscription/Filament/Resources'), for: 'App\\Modules\\Subscription\\Filament\\Resources')
             ->discoverResources(in: app_path('Modules/Tenancy/Filament/Resources'), for: 'App\\Modules\\Tenancy\\Filament\\Resources')
+            ->discoverResources(in: app_path('Modules/Article/Filament/Resources'), for: 'App\\Modules\\Article\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->middleware([

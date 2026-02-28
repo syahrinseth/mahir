@@ -1,19 +1,27 @@
 <?php
 
+use App\Http\Middleware\IdentifyTenant;
+use App\Modules\Tenancy\Models\Tenant;
 use Dedoc\Scramble\Http\Middleware\RestrictedDocsAccess;
 
 beforeEach(function () {
-    $this->withoutMiddleware(RestrictedDocsAccess::class);
+    $this->withoutMiddleware([
+        RestrictedDocsAccess::class,
+        IdentifyTenant::class,
+    ]);
+
+    $this->tenant = Tenant::factory()->create();
+    $this->tenantBaseUrl = 'http://'.$this->tenant->slug.'.'.config('multitenancy.base_domain');
 });
 
 test('api documentation ui page loads successfully', function () {
-    $response = $this->get('/docs/api');
+    $response = $this->get($this->tenantBaseUrl.'/docs/api');
 
     $response->assertSuccessful();
 });
 
 test('api documentation json spec loads successfully', function () {
-    $response = $this->getJson('/docs/api.json');
+    $response = $this->getJson($this->tenantBaseUrl.'/docs/api.json');
 
     $response->assertSuccessful()
         ->assertJsonStructure([
@@ -25,7 +33,7 @@ test('api documentation json spec loads successfully', function () {
 });
 
 test('api spec contains correct openapi version', function () {
-    $response = $this->getJson('/docs/api.json');
+    $response = $this->getJson($this->tenantBaseUrl.'/docs/api.json');
 
     $response->assertSuccessful();
 
@@ -35,7 +43,7 @@ test('api spec contains correct openapi version', function () {
 });
 
 test('api spec contains correct api info', function () {
-    $response = $this->getJson('/docs/api.json');
+    $response = $this->getJson($this->tenantBaseUrl.'/docs/api.json');
 
     $spec = $response->json();
 
@@ -44,7 +52,7 @@ test('api spec contains correct api info', function () {
 });
 
 test('api spec contains bearer authentication security scheme', function () {
-    $response = $this->getJson('/docs/api.json');
+    $response = $this->getJson($this->tenantBaseUrl.'/docs/api.json');
 
     $spec = $response->json();
 
@@ -54,7 +62,7 @@ test('api spec contains bearer authentication security scheme', function () {
 });
 
 test('api spec documents all auth endpoints', function () {
-    $response = $this->getJson('/docs/api.json');
+    $response = $this->getJson($this->tenantBaseUrl.'/docs/api.json');
 
     $paths = $response->json('paths');
 
@@ -65,7 +73,7 @@ test('api spec documents all auth endpoints', function () {
 });
 
 test('api spec documents all tenant endpoints', function () {
-    $response = $this->getJson('/docs/api.json');
+    $response = $this->getJson($this->tenantBaseUrl.'/docs/api.json');
 
     $paths = $response->json('paths');
 
@@ -74,7 +82,7 @@ test('api spec documents all tenant endpoints', function () {
 });
 
 test('api spec documents all subscription endpoints', function () {
-    $response = $this->getJson('/docs/api.json');
+    $response = $this->getJson($this->tenantBaseUrl.'/docs/api.json');
 
     $paths = $response->json('paths');
 
@@ -83,7 +91,7 @@ test('api spec documents all subscription endpoints', function () {
 });
 
 test('api spec marks register and login as unauthenticated', function () {
-    $response = $this->getJson('/docs/api.json');
+    $response = $this->getJson($this->tenantBaseUrl.'/docs/api.json');
 
     $paths = $response->json('paths');
 
@@ -95,7 +103,7 @@ test('api spec marks register and login as unauthenticated', function () {
 });
 
 test('api spec includes validation error responses', function () {
-    $response = $this->getJson('/docs/api.json');
+    $response = $this->getJson($this->tenantBaseUrl.'/docs/api.json');
 
     $paths = $response->json('paths');
 
@@ -107,7 +115,7 @@ test('api spec includes validation error responses', function () {
 });
 
 test('api spec groups endpoints by tag', function () {
-    $response = $this->getJson('/docs/api.json');
+    $response = $this->getJson($this->tenantBaseUrl.'/docs/api.json');
 
     $paths = $response->json('paths');
 
@@ -121,7 +129,7 @@ test('api spec groups endpoints by tag', function () {
 });
 
 test('api spec documents request body fields for register endpoint', function () {
-    $response = $this->getJson('/docs/api.json');
+    $response = $this->getJson($this->tenantBaseUrl.'/docs/api.json');
 
     $spec = $response->json();
 
@@ -137,14 +145,20 @@ test('api spec documents request body fields for register endpoint', function ()
 });
 
 test('api spec documents the total expected number of path entries', function () {
-    $response = $this->getJson('/docs/api.json');
+    $response = $this->getJson($this->tenantBaseUrl.'/docs/api.json');
 
     $paths = $response->json('paths');
 
     // ping, auth/register, auth/login, auth/logout, auth/user,
     // tenants (index+store), tenants/{tenant} (show+update+destroy),
-    // subscriptions (index+store), subscriptions/{id} (show+update+destroy)
-    expect(count($paths))->toBe(9);
+    // subscriptions (index+store), subscriptions/{subscription} (show+update+destroy),
+    // articles (index+store), articles/{article} (show+update+destroy),
+    // articles/{article}/publish, articles/{article}/archive,
+    // articles/{article}/comments (index+store), articles/{article}/comments/{comment} (destroy),
+    // articles/{article}/revisions (index), articles/{article}/revisions/{revision} (show),
+    // articles/{article}/restore-revision/{revision} (restore),
+    // article-series (index+store), article-series/{series} (show+update+destroy)
+    expect(count($paths))->toBe(20);
 });
 
 test('api docs ui returns 404 on admin subdomain', function () {

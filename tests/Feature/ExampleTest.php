@@ -1,7 +1,15 @@
 <?php
 
-test('the application returns a successful response', function () {
-    $response = $this->get('/');
+use App\Http\Middleware\IdentifyTenant;
+use App\Modules\Tenancy\Models\Tenant;
 
-    $response->assertStatus(200);
+test('the application returns a successful response', function () {
+    $this->withoutMiddleware(IdentifyTenant::class);
+
+    $tenant = Tenant::factory()->create();
+    $tenantBaseUrl = 'http://'.$tenant->slug.'.'.config('multitenancy.base_domain');
+
+    $response = $this->get($tenantBaseUrl.'/');
+
+    $response->assertSuccessful();
 });

@@ -1,5 +1,9 @@
 <?php
 
+use App\Modules\Article\Http\Controllers\ArticleCommentController;
+use App\Modules\Article\Http\Controllers\ArticleController;
+use App\Modules\Article\Http\Controllers\ArticleRevisionController;
+use App\Modules\Article\Http\Controllers\ArticleSeriesController;
 use App\Modules\Auth\Http\Controllers\AuthController;
 use App\Modules\Subscription\Http\Controllers\SubscriptionController;
 use App\Modules\Tenancy\Http\Controllers\TenantController;
@@ -63,4 +67,42 @@ Route::middleware('auth:sanctum')->prefix('subscriptions')->group(function () {
     Route::get('/{subscription}', [SubscriptionController::class, 'show'])->name('api.subscriptions.show');
     Route::put('/{subscription}', [SubscriptionController::class, 'update'])->name('api.subscriptions.update');
     Route::delete('/{subscription}', [SubscriptionController::class, 'destroy'])->name('api.subscriptions.destroy');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Article Routes (Tenant-scoped, requires auth)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth:sanctum')->prefix('articles')->group(function () {
+    Route::get('/', [ArticleController::class, 'index'])->name('api.articles.index');
+    Route::post('/', [ArticleController::class, 'store'])->name('api.articles.store');
+    Route::get('/{article}', [ArticleController::class, 'show'])->name('api.articles.show');
+    Route::put('/{article}', [ArticleController::class, 'update'])->name('api.articles.update');
+    Route::delete('/{article}', [ArticleController::class, 'destroy'])->name('api.articles.destroy');
+    Route::post('/{article}/publish', [ArticleController::class, 'publish'])->name('api.articles.publish');
+    Route::post('/{article}/archive', [ArticleController::class, 'archive'])->name('api.articles.archive');
+
+    // Article Comments
+    Route::get('/{article}/comments', [ArticleCommentController::class, 'index'])->name('api.articles.comments.index');
+    Route::post('/{article}/comments', [ArticleCommentController::class, 'store'])->name('api.articles.comments.store');
+    Route::delete('/{article}/comments/{comment}', [ArticleCommentController::class, 'destroy'])->name('api.articles.comments.destroy');
+
+    // Article Revisions
+    Route::get('/{article}/revisions', [ArticleRevisionController::class, 'index'])->name('api.articles.revisions.index');
+    Route::get('/{article}/revisions/{revision}', [ArticleRevisionController::class, 'show'])->name('api.articles.revisions.show');
+    Route::post('/{article}/restore-revision/{revision}', [ArticleRevisionController::class, 'restore'])->name('api.articles.revisions.restore');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Article Series Routes (Tenant-scoped, requires auth)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth:sanctum')->prefix('article-series')->group(function () {
+    Route::get('/', [ArticleSeriesController::class, 'index'])->name('api.article-series.index');
+    Route::post('/', [ArticleSeriesController::class, 'store'])->name('api.article-series.store');
+    Route::get('/{series}', [ArticleSeriesController::class, 'show'])->name('api.article-series.show');
+    Route::put('/{series}', [ArticleSeriesController::class, 'update'])->name('api.article-series.update');
+    Route::delete('/{series}', [ArticleSeriesController::class, 'destroy'])->name('api.article-series.destroy');
 });

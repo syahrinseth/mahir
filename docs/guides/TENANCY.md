@@ -134,6 +134,50 @@ try {
 
 ---
 
+## Creating Tenant-Scoped Modules
+
+When building new modules that store tenant data, follow these rules:
+
+### No `tenant_id` Column in Tenant Tables
+
+Because each tenant has its **own isolated database**, tenant-scoped tables do **NOT** need a `tenant_id` column. The database itself provides the isolation. All data in a tenant database belongs exclusively to that tenant.
+
+```
+CORRECT (tenant database):
+articles: id, user_id, title, slug, content, ...
+comments: id, article_id, user_id, content, ...
+
+WRONG (tenant database):
+articles: id, tenant_id, user_id, title, ...   ← tenant_id is redundant
+```
+
+### When `tenant_id` IS Needed
+
+Only landlord-scoped tables that reference tenants need `tenant_id`. For example, `subscriptions` lives in the landlord database and uses `tenant_id` to link to a specific tenant.
+
+| Table Location | Has `tenant_id`? | Reason |
+|----------------|------------------|--------|
+| Tenant database (`users`, `articles`) | No | Entire DB is isolated per tenant |
+| Landlord database (`subscriptions`) | Yes | Shared DB, needs FK to identify tenant |
+
+### Model Trait Selection
+
+| Data Scope | Trait | Migration Directory |
+|------------|-------|---------------------|
+| Per-tenant data | `UsesTenantConnection` | `database/migrations/tenant/` |
+| Global/shared data | `UsesLandlordConnection` | `database/migrations/landlord/` |
+
+### Module Checklist
+
+1. **Migration**: Place in `database/migrations/tenant/` (no `tenant_id` column)
+2. **Model**: Use `UsesTenantConnection` trait
+3. **Factory**: Reference the model with `#[UseFactory]` attribute
+4. **Service Provider**: Register in `bootstrap/providers.php`
+5. **Filament Resource**: Will be auto-discovered via `AdminPanelProvider`
+6. **Routes**: Add to `routes/api.php` under appropriate middleware group
+
+---
+
 ## Queue Awareness
 
 All queued jobs automatically restore tenant context (`queues_are_tenant_aware_by_default: true`). Use `TenantAware` or `NotTenantAware` interfaces for explicit control.
