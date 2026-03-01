@@ -8,8 +8,9 @@ use App\Modules\Portfolio\DTOs\UpdatePortfolioDTO;
 use App\Modules\Portfolio\Enums\PortfolioStatus;
 use App\Modules\Portfolio\Models\Portfolio;
 use App\Modules\Portfolio\Models\PortfolioCategory;
-use App\Modules\Portfolio\Models\PortfolioMedia;
 use App\Modules\Portfolio\Services\PortfolioService;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 /*
 |--------------------------------------------------------------------------
@@ -188,32 +189,36 @@ test('deleteCategory removes category from database', function () {
 |--------------------------------------------------------------------------
 */
 
-test('addMedia creates a media record', function () {
+test('addMedia creates a media record via Spatie', function () {
+    Storage::fake('public');
     $service = app(PortfolioService::class);
     $portfolio = Portfolio::factory()->create();
+    $file = UploadedFile::fake()->image('screenshot.jpg', 800, 600);
 
-    $media = $service->addMedia([
-        'portfolio_id' => $portfolio->id,
-        'file_path' => 'portfolios/screenshot.jpg',
-        'file_name' => 'screenshot.jpg',
-        'mime_type' => 'image/jpeg',
-        'file_size' => 1024,
+    $media = $service->addMedia($portfolio, $file, 'gallery', [
+        'caption' => 'Screenshot caption',
         'sort_order' => 0,
     ]);
 
     expect($media)
-        ->toBeInstanceOf(PortfolioMedia::class)
-        ->file_name->toBe('screenshot.jpg');
+        ->toBeInstanceOf(\Spatie\MediaLibrary\MediaCollections\Models\Media::class)
+        ->file_name->toBe('screenshot.jpg')
+        ->collection_name->toBe('gallery');
+    expect($media->getCustomProperty('caption'))->toBe('Screenshot caption');
 });
 
 test('deleteMedia removes a media record', function () {
+    Storage::fake('public');
     $service = app(PortfolioService::class);
-    $media = PortfolioMedia::factory()->create();
+    $portfolio = Portfolio::factory()->create();
+
+    $media = $portfolio->addMedia(UploadedFile::fake()->image('screenshot.jpg'))
+        ->toMediaCollection('gallery');
 
     $result = $service->deleteMedia($media->id);
 
     expect($result)->toBeTrue();
-    $this->assertDatabaseMissing('portfolio_media', ['id' => $media->id]);
+    $this->assertDatabaseMissing('media', ['id' => $media->id]);
 });
 
 test('deleteMedia returns false for non-existent media', function () {
@@ -224,33 +229,32 @@ test('deleteMedia returns false for non-existent media', function () {
     expect($result)->toBeFalse();
 });
 
-test('getMediaForPortfolio returns ordered media', function () {
+test('getMediaForPortfolio returns media collection', function () {
+    Storage::fake('public');
     $service = app(PortfolioService::class);
     $portfolio = Portfolio::factory()->create();
 
-    PortfolioMedia::factory()->create(['portfolio_id' => $portfolio->id, 'sort_order' => 2]);
-    PortfolioMedia::factory()->create(['portfolio_id' => $portfolio->id, 'sort_order' => 0]);
-    PortfolioMedia::factory()->create(['portfolio_id' => $portfolio->id, 'sort_order' => 1]);
+    $portfolio->addMedia(UploadedFile::fake()->image('photo1.jpg'))->toMediaCollection('gallery');
+    $portfolio->addMedia(UploadedFile::fake()->image('photo2.jpg'))->toMediaCollection('gallery');
+    $portfolio->addMedia(UploadedFile::fake()->image('photo3.jpg'))->toMediaCollection('gallery');
 
-    $media = $service->getMediaForPortfolio($portfolio->id);
+    $media = $service->getMediaForPortfolio($portfolio, 'gallery');
 
     expect($media)->toHaveCount(3);
-    expect($media[0]->sort_order)->toBe(0);
-    expect($media[1]->sort_order)->toBe(1);
-    expect($media[2]->sort_order)->toBe(2);
 });
 
-test('reorderMedia updates sort_order for media items', function () {
+test('reorderMedia updates order_column for media items', function () {
+    Storage::fake('public');
     $service = app(PortfolioService::class);
     $portfolio = Portfolio::factory()->create();
 
-    $media1 = PortfolioMedia::factory()->create(['portfolio_id' => $portfolio->id, 'sort_order' => 0]);
-    $media2 = PortfolioMedia::factory()->create(['portfolio_id' => $portfolio->id, 'sort_order' => 1]);
-    $media3 = PortfolioMedia::factory()->create(['portfolio_id' => $portfolio->id, 'sort_order' => 2]);
+    $media1 = $portfolio->addMedia(UploadedFile::fake()->image('photo1.jpg'))->toMediaCollection('gallery');
+    $media2 = $portfolio->addMedia(UploadedFile::fake()->image('photo2.jpg'))->toMediaCollection('gallery');
+    $media3 = $portfolio->addMedia(UploadedFile::fake()->image('photo3.jpg'))->toMediaCollection('gallery');
 
-    $service->reorderMedia($portfolio->id, [$media3->id, $media1->id, $media2->id]);
+    $service->reorderMedia($portfolio, [$media3->id, $media1->id, $media2->id]);
 
-    expect($media3->fresh()->sort_order)->toBe(0);
-    expect($media1->fresh()->sort_order)->toBe(1);
-    expect($media2->fresh()->sort_order)->toBe(2);
+    expect($media3->fresh()->order_column)->toBe(1);
+    expect($media1->fresh()->order_column)->toBe(2);
+    expect($media2->fresh()->order_column)->toBe(3);
 });

@@ -20,7 +20,7 @@ class PortfolioRepository implements RepositoryContract
 
     public function findById(int $id): ?Portfolio
     {
-        return Portfolio::query()->with(['author', 'category', 'orderedMedia'])->find($id);
+        return Portfolio::query()->with(['author', 'category', 'media'])->find($id);
     }
 
     /**
@@ -52,7 +52,7 @@ class PortfolioRepository implements RepositoryContract
     {
         return Portfolio::query()
             ->where('slug', $slug)
-            ->with(['author', 'category', 'orderedMedia'])
+            ->with(['author', 'category', 'media'])
             ->first();
     }
 
@@ -77,7 +77,7 @@ class PortfolioRepository implements RepositoryContract
 
         $portfolio->update($data);
 
-        return $portfolio->fresh(['author', 'category', 'orderedMedia']);
+        return $portfolio->fresh(['author', 'category', 'media']);
     }
 
     public function delete(int $id): bool

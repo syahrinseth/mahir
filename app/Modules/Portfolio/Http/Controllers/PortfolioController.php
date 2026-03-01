@@ -60,7 +60,7 @@ class PortfolioController extends Controller
             abort(404, 'Portfolio not found.');
         }
 
-        return response()->json(['data' => $portfolio->load(['author', 'category', 'orderedMedia'])]);
+        return response()->json(['data' => $portfolio->load(['author', 'category', 'media'])]);
     }
 
     /**

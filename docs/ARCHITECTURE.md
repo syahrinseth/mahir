@@ -19,6 +19,7 @@ The codebase follows a **modular architecture** where all related code for a dom
 | Frontend | Livewire v4, Vite |
 | Testing | Pest v4 |
 | Code Style | Laravel Pint |
+| Media | Spatie Media Library v11 (tenant-aware) |
 
 ## Directory Structure
 
@@ -28,13 +29,19 @@ app/
 │   └── Middleware/
 │       └── IdentifyTenant.php       # Resolves tenant from subdomain
 ├── Modules/                          # All domain logic lives here
+│   ├── Article/                      # Article/blog management
 │   ├── Auth/                         # Authentication & user management
+│   ├── Portfolio/                    # Portfolio project showcase
 │   ├── Subscription/                 # Subscription & billing management
 │   └── Tenancy/                      # Tenant lifecycle & database management
 ├── Providers/
 │   ├── AppServiceProvider.php        # Registers migration paths
 │   └── Filament/
 │       └── AdminPanelProvider.php    # Filament panel config
+├── Support/
+│   └── MediaLibrary/                 # Spatie Media Library extensions
+│       ├── MultiTenantPathGenerator.php  # Prefixes paths with tenants/{id}/
+│       └── TenantAwareMedia.php          # Media model on tenant connection
 └── Shared/                           # Cross-module contracts, traits, exceptions
     ├── Contracts/
     ├── Exceptions/
@@ -47,6 +54,7 @@ bootstrap/
 config/
 ├── auth.php                          # Guards: web, admin, api (sanctum)
 ├── database.php                      # Connections: landlord, tenant, sqlite
+├── media-library.php                 # Spatie: TenantAwareMedia model, MultiTenantPathGenerator
 └── multitenancy.php                  # Spatie config, tenant finder, switch tasks
 
 database/
@@ -105,7 +113,9 @@ Not every module has all directories — only the ones that are needed. For exam
 
 | Module | Purpose | Models | DB Connection |
 |--------|---------|--------|---------------|
+| **Article** | Article/blog content management | `Article`, `ArticleSeries`, `ArticleComment`, `ArticleRevision` | tenant |
 | **Auth** | User authentication, registration, admin users | `User`, `AdminUser`, `PersonalAccessToken` | `User` on tenant, `AdminUser` on landlord |
+| **Portfolio** | Project showcase with media galleries | `Portfolio`, `PortfolioCategory` | tenant (media via Spatie `TenantAwareMedia`) |
 | **Subscription** | Subscription & plan management | `Subscription` | landlord |
 | **Tenancy** | Tenant lifecycle, database creation, subdomain resolution | `Tenant` | landlord |
 
@@ -220,6 +230,10 @@ The default connection is `landlord`. The `tenant` connection has `database: nul
 | `Subscription` | `UsesLandlordConnection` | `mahir_landlord` |
 | `User` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
 | `PersonalAccessToken` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
+| `Portfolio` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
+| `PortfolioCategory` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
+| `TenantAwareMedia` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
+| `Article` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
 
 ### Tenant Resolution Flow
 
@@ -369,6 +383,8 @@ All factories live in `database/factories/` and are linked to module models via 
 | `PersonalAccessTokenFactory` | `Auth\Models\PersonalAccessToken` | — |
 | `TenantFactory` | `Tenancy\Models\Tenant` | `active()`, `inactive()` |
 | `SubscriptionFactory` | `Subscription\Models\Subscription` | `onTrial()`, `cancelled()`, `expired()`, `withPlan()` |
+| `PortfolioFactory` | `Portfolio\Models\Portfolio` | `draft()`, `published()` |
+| `PortfolioCategoryFactory` | `Portfolio\Models\PortfolioCategory` | — |
 
 Models in non-standard namespaces (under `App\Modules\*`) use the `#[UseFactory(FactoryClass::class)]` attribute for Laravel to resolve the correct factory.
 
@@ -419,6 +435,59 @@ php artisan test --compact --testsuite=Unit
 - Jobs can implement `TenantAware` or `NotTenantAware` interfaces for explicit control
 - Cache keys are automatically prefixed per tenant via `PrefixCacheTask`
 
+## Media Library (Spatie)
+
+Portfolio (and any future models) use **Spatie Media Library v11** for polymorphic file management. Media records are stored in each tenant's own database for isolation.
+
+### Key Configuration (`config/media-library.php`)
+
+| Setting | Value |
+|---------|-------|
+| `media_model` | `App\Support\MediaLibrary\TenantAwareMedia` |
+| `path_generator` | `App\Support\MediaLibrary\MultiTenantPathGenerator` |
+| `disk_name` | `public` |
+
+### Multi-Tenant Integration
+
+- **`TenantAwareMedia`** (`app/Support/MediaLibrary/TenantAwareMedia.php`) — extends Spatie's `Media` model with the `UsesTenantConnection` trait so media records are stored in the tenant database
+- **`MultiTenantPathGenerator`** (`app/Support/MediaLibrary/MultiTenantPathGenerator.php`) — prefixes all file storage paths with `tenants/{tenant_id}/{media_id}/` for file-level isolation on a shared disk
+- No `tenant_id` column on the media table — isolation is achieved at the database level (separate DB per tenant)
+
+### Portfolio Media Collections
+
+The `Portfolio` model implements `HasMedia` and defines two named collections:
+
+| Collection | Type | Accepted MIME Types |
+|-----------|------|-------------------|
+| `gallery` | Multiple files | jpg, png, webp, gif, svg, pdf |
+| `featured` | Single file (replaces previous) | jpg, png, webp |
+
+### Image Conversions
+
+Three conversions are registered on the Portfolio model (all non-queued):
+
+| Conversion | Dimensions | Purpose |
+|-----------|-----------|---------|
+| `thumb` | 300x300 | Thumbnail for grid views |
+| `medium` | 600x400 | Medium preview |
+| `display` | 1200x600 | Full display image |
+
+### Custom Properties
+
+Caption and sort order are stored in Spatie's `custom_properties` JSON column:
+- `caption` (string|null) — image caption/description
+- `sort_order` (int|null) — display order within the collection
+
+### Adding Media to Other Models
+
+To add Spatie media to a new model:
+
+1. Implement `Spatie\MediaLibrary\HasMedia` interface
+2. Use `Spatie\MediaLibrary\InteractsWithMedia` trait
+3. Define `registerMediaCollections()` for named collections
+4. Define `registerMediaConversions()` for image variants
+5. The `TenantAwareMedia` model and `MultiTenantPathGenerator` apply automatically via config
+
 ## Bootstrap Configuration
 
 ### `bootstrap/app.php`
@@ -467,6 +536,7 @@ Registered providers (order matters):
 | `config/multitenancy.php` | Tenant finder, switch tasks, queue awareness, connection names |
 | `config/database.php` | Landlord + tenant MySQL connections, SQLite for tests |
 | `config/auth.php` | Guards (web, admin, sanctum) and user providers |
+| `config/media-library.php` | Spatie Media Library: model, path generator, disk settings |
 | `bootstrap/app.php` | Middleware pipeline, routing config, API prefix |
 | `bootstrap/providers.php` | All service provider registrations |
 | `phpunit.xml` | Test environment — SQLite in-memory, env overrides |

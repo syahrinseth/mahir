@@ -23,6 +23,8 @@ class StorePortfolioMediaRequest extends FormRequest
             'caption' => ['nullable', 'string', 'max:500'],
             /** The display order for sorting. */
             'sort_order' => ['sometimes', 'integer', 'min:0'],
+            /** The media collection to upload to ('gallery' or 'featured'). */
+            'collection' => ['sometimes', 'string', 'in:gallery,featured'],
         ];
     }
 
@@ -35,6 +37,7 @@ class StorePortfolioMediaRequest extends FormRequest
             'file.required' => 'A file is required.',
             'file.max' => 'The file must not be larger than 10 MB.',
             'file.mimes' => 'The file must be an image (jpg, png, gif, webp, svg) or PDF.',
+            'collection.in' => 'The collection must be either gallery or featured.',
         ];
     }
 }

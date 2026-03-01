@@ -3,7 +3,6 @@
 use App\Http\Middleware\IdentifyTenant;
 use App\Modules\Auth\Models\User;
 use App\Modules\Portfolio\Models\Portfolio;
-use App\Modules\Portfolio\Models\PortfolioMedia;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -22,7 +21,10 @@ beforeEach(function () {
 
 test('can list media for a portfolio', function () {
     $portfolio = Portfolio::factory()->create(['user_id' => $this->user->id]);
-    PortfolioMedia::factory()->count(3)->create(['portfolio_id' => $portfolio->id]);
+
+    $portfolio->addMedia(UploadedFile::fake()->image('photo1.jpg'))->toMediaCollection('gallery');
+    $portfolio->addMedia(UploadedFile::fake()->image('photo2.jpg'))->toMediaCollection('gallery');
+    $portfolio->addMedia(UploadedFile::fake()->image('photo3.jpg'))->toMediaCollection('gallery');
 
     $response = $this->getJson("/api/v1/portfolios/{$portfolio->id}/media");
 
@@ -54,10 +56,41 @@ test('can upload media to a portfolio', function () {
 
     $response->assertCreated()
         ->assertJsonPath('message', 'Media uploaded successfully.')
-        ->assertJsonPath('data.file_name', 'screenshot.jpg')
-        ->assertJsonPath('data.caption', 'Homepage screenshot');
+        ->assertJsonPath('data.file_name', 'screenshot.jpg');
 
-    Storage::disk('public')->assertExists($response->json('data.file_path'));
+    $this->assertDatabaseHas('media', [
+        'model_type' => Portfolio::class,
+        'model_id' => $portfolio->id,
+        'collection_name' => 'gallery',
+        'file_name' => 'screenshot.jpg',
+    ]);
+});
+
+test('can upload media to featured collection', function () {
+    $portfolio = Portfolio::factory()->create(['user_id' => $this->user->id]);
+    $file = UploadedFile::fake()->image('banner.jpg', 1200, 600);
+
+    $response = $this->postJson("/api/v1/portfolios/{$portfolio->id}/media", [
+        'file' => $file,
+        'collection' => 'featured',
+    ]);
+
+    $response->assertCreated()
+        ->assertJsonPath('data.collection_name', 'featured');
+});
+
+test('featured collection replaces previous file', function () {
+    $portfolio = Portfolio::factory()->create(['user_id' => $this->user->id]);
+
+    $portfolio->addMedia(UploadedFile::fake()->image('old-banner.jpg'))->toMediaCollection('featured');
+
+    $this->postJson("/api/v1/portfolios/{$portfolio->id}/media", [
+        'file' => UploadedFile::fake()->image('new-banner.jpg'),
+        'collection' => 'featured',
+    ]);
+
+    expect($portfolio->getMedia('featured'))->toHaveCount(1);
+    expect($portfolio->getFirstMedia('featured')->file_name)->toBe('new-banner.jpg');
 });
 
 test('uploading media fails without file', function () {
@@ -91,6 +124,22 @@ test('uploading media to non-existent portfolio returns 404', function () {
     $response->assertNotFound();
 });
 
+test('uploading media stores custom properties', function () {
+    $portfolio = Portfolio::factory()->create(['user_id' => $this->user->id]);
+    $file = UploadedFile::fake()->image('screenshot.jpg', 800, 600);
+
+    $this->postJson("/api/v1/portfolios/{$portfolio->id}/media", [
+        'file' => $file,
+        'caption' => 'My caption',
+        'sort_order' => 5,
+    ]);
+
+    $media = $portfolio->getFirstMedia('gallery');
+
+    expect($media->getCustomProperty('caption'))->toBe('My caption');
+    expect($media->getCustomProperty('sort_order'))->toBe(5);
+});
+
 /*
 |--------------------------------------------------------------------------
 | Destroy
@@ -99,14 +148,16 @@ test('uploading media to non-existent portfolio returns 404', function () {
 
 test('can delete media from a portfolio', function () {
     $portfolio = Portfolio::factory()->create(['user_id' => $this->user->id]);
-    $media = PortfolioMedia::factory()->create(['portfolio_id' => $portfolio->id]);
+
+    $media = $portfolio->addMedia(UploadedFile::fake()->image('screenshot.jpg'))
+        ->toMediaCollection('gallery');
 
     $response = $this->deleteJson("/api/v1/portfolios/{$portfolio->id}/media/{$media->id}");
 
     $response->assertSuccessful()
         ->assertJsonPath('message', 'Media deleted successfully.');
 
-    $this->assertDatabaseMissing('portfolio_media', ['id' => $media->id]);
+    $this->assertDatabaseMissing('media', ['id' => $media->id]);
 });
 
 test('deleting non-existent media returns 404', function () {
@@ -125,9 +176,10 @@ test('deleting non-existent media returns 404', function () {
 
 test('can reorder media for a portfolio', function () {
     $portfolio = Portfolio::factory()->create(['user_id' => $this->user->id]);
-    $media1 = PortfolioMedia::factory()->create(['portfolio_id' => $portfolio->id, 'sort_order' => 0]);
-    $media2 = PortfolioMedia::factory()->create(['portfolio_id' => $portfolio->id, 'sort_order' => 1]);
-    $media3 = PortfolioMedia::factory()->create(['portfolio_id' => $portfolio->id, 'sort_order' => 2]);
+
+    $media1 = $portfolio->addMedia(UploadedFile::fake()->image('photo1.jpg'))->toMediaCollection('gallery');
+    $media2 = $portfolio->addMedia(UploadedFile::fake()->image('photo2.jpg'))->toMediaCollection('gallery');
+    $media3 = $portfolio->addMedia(UploadedFile::fake()->image('photo3.jpg'))->toMediaCollection('gallery');
 
     $response = $this->putJson("/api/v1/portfolios/{$portfolio->id}/media/reorder", [
         'media_ids' => [$media3->id, $media1->id, $media2->id],
@@ -136,9 +188,9 @@ test('can reorder media for a portfolio', function () {
     $response->assertSuccessful()
         ->assertJsonPath('message', 'Media reordered successfully.');
 
-    expect($media3->fresh()->sort_order)->toBe(0);
-    expect($media1->fresh()->sort_order)->toBe(1);
-    expect($media2->fresh()->sort_order)->toBe(2);
+    expect($media3->fresh()->order_column)->toBe(1);
+    expect($media1->fresh()->order_column)->toBe(2);
+    expect($media2->fresh()->order_column)->toBe(3);
 });
 
 test('reordering media for non-existent portfolio returns 404', function () {

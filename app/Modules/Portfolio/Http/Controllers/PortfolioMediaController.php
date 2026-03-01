@@ -29,7 +29,7 @@ class PortfolioMediaController extends Controller
             abort(404, 'Portfolio not found.');
         }
 
-        $media = $this->portfolioService->getMediaForPortfolio($portfolioId);
+        $media = $this->portfolioService->getMediaForPortfolio($portfolio);
 
         return response()->json(['data' => $media]);
     }
@@ -45,18 +45,15 @@ class PortfolioMediaController extends Controller
             abort(404, 'Portfolio not found.');
         }
 
-        $file = $request->file('file');
-        $path = $file->store('portfolios', 'public');
-
-        $media = $this->portfolioService->addMedia([
-            'portfolio_id' => $portfolioId,
-            'file_path' => $path,
-            'file_name' => $file->getClientOriginalName(),
-            'mime_type' => $file->getMimeType(),
-            'file_size' => $file->getSize(),
-            'sort_order' => $request->validated('sort_order', 0),
-            'caption' => $request->validated('caption'),
-        ]);
+        $media = $this->portfolioService->addMedia(
+            portfolio: $portfolio,
+            file: $request->file('file'),
+            collection: $request->validated('collection', 'gallery'),
+            properties: [
+                'caption' => $request->validated('caption'),
+                'sort_order' => $request->validated('sort_order', 0),
+            ],
+        );
 
         return response()->json([
             'message' => 'Media uploaded successfully.',
@@ -96,7 +93,7 @@ class PortfolioMediaController extends Controller
             'media_ids.*' => ['integer'],
         ]);
 
-        $this->portfolioService->reorderMedia($portfolioId, $validated['media_ids']);
+        $this->portfolioService->reorderMedia($portfolio, $validated['media_ids']);
 
         return response()->json(['message' => 'Media reordered successfully.']);
     }

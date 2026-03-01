@@ -9,11 +9,11 @@ use App\Modules\Portfolio\DTOs\UpdatePortfolioDTO;
 use App\Modules\Portfolio\Enums\PortfolioStatus;
 use App\Modules\Portfolio\Models\Portfolio;
 use App\Modules\Portfolio\Models\PortfolioCategory;
-use App\Modules\Portfolio\Models\PortfolioMedia;
 use App\Modules\Portfolio\Repositories\PortfolioCategoryRepository;
 use App\Modules\Portfolio\Repositories\PortfolioRepository;
 use App\Shared\Contracts\ServiceContract;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\UploadedFile;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * Business logic for managing portfolios, categories, and media.
@@ -126,18 +126,30 @@ class PortfolioService implements ServiceContract
 
     /*
     |--------------------------------------------------------------------------
-    | Media
+    | Media (Spatie Media Library)
     |--------------------------------------------------------------------------
     */
 
     /**
-     * Add a media item to a portfolio.
+     * Add a media file to a portfolio collection.
      *
-     * @param  array<string, mixed>  $data
+     * @param  array{caption?: string|null, sort_order?: int}  $properties
      */
-    public function addMedia(array $data): PortfolioMedia
-    {
-        return PortfolioMedia::query()->create($data);
+    public function addMedia(
+        Portfolio $portfolio,
+        UploadedFile $file,
+        string $collection = 'gallery',
+        array $properties = [],
+    ): Media {
+        $customProperties = array_filter([
+            'caption' => $properties['caption'] ?? null,
+            'sort_order' => $properties['sort_order'] ?? null,
+        ], fn ($value) => $value !== null);
+
+        return $portfolio
+            ->addMedia($file)
+            ->withCustomProperties($customProperties)
+            ->toMediaCollection($collection);
     }
 
     /**
@@ -145,26 +157,26 @@ class PortfolioService implements ServiceContract
      */
     public function deleteMedia(int $mediaId): bool
     {
-        $media = PortfolioMedia::query()->find($mediaId);
+        $mediaClass = config('media-library.media_model');
+        $media = $mediaClass::query()->find($mediaId);
 
         if (! $media) {
             return false;
         }
 
-        return (bool) $media->delete();
+        $media->delete();
+
+        return true;
     }
 
     /**
-     * Get media for a portfolio.
+     * Get all gallery media for a portfolio, ordered by order_column.
      *
-     * @return Collection<int, PortfolioMedia>
+     * @return \Spatie\MediaLibrary\MediaCollections\Models\Collections\MediaCollection<int, Media>
      */
-    public function getMediaForPortfolio(int $portfolioId): Collection
+    public function getMediaForPortfolio(Portfolio $portfolio, string $collection = 'gallery'): \Spatie\MediaLibrary\MediaCollections\Models\Collections\MediaCollection
     {
-        return PortfolioMedia::query()
-            ->where('portfolio_id', $portfolioId)
-            ->orderBy('sort_order')
-            ->get();
+        return $portfolio->getMedia($collection);
     }
 
     /**
@@ -172,13 +184,8 @@ class PortfolioService implements ServiceContract
      *
      * @param  list<int>  $mediaIds  Ordered list of media IDs.
      */
-    public function reorderMedia(int $portfolioId, array $mediaIds): void
+    public function reorderMedia(Portfolio $portfolio, array $mediaIds): void
     {
-        foreach ($mediaIds as $index => $mediaId) {
-            PortfolioMedia::query()
-                ->where('id', $mediaId)
-                ->where('portfolio_id', $portfolioId)
-                ->update(['sort_order' => $index]);
-        }
+        Media::setNewOrder($mediaIds);
     }
 }

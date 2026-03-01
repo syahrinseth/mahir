@@ -10,13 +10,19 @@ use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * Tenant-scoped portfolio model.
  *
  * Each tenant has its own portfolios table in its own database.
  * Used to showcase projects and work with rich media galleries.
+ *
+ * Media is handled by Spatie Media Library with two named collections:
+ * - 'gallery' (multiple files: jpg, png, webp, gif, svg, pdf)
+ * - 'featured' (single file: jpg, png, webp)
  *
  * @property int $id
  * @property int $user_id
@@ -37,9 +43,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property \Illuminate\Support\Carbon $updated_at
  */
 #[UseFactory(PortfolioFactory::class)]
-class Portfolio extends Model
+class Portfolio extends Model implements HasMedia
 {
-    use HasFactory, UsesTenantConnection;
+    use HasFactory, InteractsWithMedia, UsesTenantConnection;
 
     /** @var list<string> */
     protected $fillable = [
@@ -74,6 +80,45 @@ class Portfolio extends Model
         ];
     }
 
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('gallery')
+            ->acceptsMimeTypes([
+                'image/jpeg',
+                'image/png',
+                'image/webp',
+                'image/gif',
+                'image/svg+xml',
+                'application/pdf',
+            ]);
+
+        $this->addMediaCollection('featured')
+            ->singleFile()
+            ->acceptsMimeTypes([
+                'image/jpeg',
+                'image/png',
+                'image/webp',
+            ]);
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('thumb')
+            ->width(300)
+            ->height(300)
+            ->nonQueued();
+
+        $this->addMediaConversion('medium')
+            ->width(600)
+            ->height(400)
+            ->nonQueued();
+
+        $this->addMediaConversion('display')
+            ->width(1200)
+            ->height(600)
+            ->nonQueued();
+    }
+
     /**
      * @return BelongsTo<User, $this>
      */
@@ -88,24 +133,6 @@ class Portfolio extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(PortfolioCategory::class, 'category_id');
-    }
-
-    /**
-     * @return HasMany<PortfolioMedia, $this>
-     */
-    public function media(): HasMany
-    {
-        return $this->hasMany(PortfolioMedia::class);
-    }
-
-    /**
-     * Get media ordered by their sort position.
-     *
-     * @return HasMany<PortfolioMedia, $this>
-     */
-    public function orderedMedia(): HasMany
-    {
-        return $this->media()->orderBy('sort_order');
     }
 
     public function isDraft(): bool

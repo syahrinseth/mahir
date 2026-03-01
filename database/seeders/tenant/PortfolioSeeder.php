@@ -5,7 +5,6 @@ namespace Database\Seeders\Tenant;
 use App\Modules\Auth\Models\User;
 use App\Modules\Portfolio\Models\Portfolio;
 use App\Modules\Portfolio\Models\PortfolioCategory;
-use App\Modules\Portfolio\Models\PortfolioMedia;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -120,20 +119,32 @@ class PortfolioSeeder extends Seeder
             'user_id' => $users->first()->id,
         ]);
 
-        // Add media to published portfolios
-        foreach ($publishedPortfolios as $portfolio) {
-            PortfolioMedia::factory(fake()->numberBetween(2, 4))
-                ->sequence(fn ($sequence) => ['sort_order' => $sequence->index])
-                ->create([
-                    'portfolio_id' => $portfolio->id,
-                ]);
+        // Add media to published portfolios using Spatie Media Library
+        $captions = [
+            'Homepage design overview',
+            'Dashboard analytics view',
+            'Mobile responsive layout',
+            'User settings panel',
+            'Authentication flow',
+        ];
 
-            PortfolioMedia::factory()
-                ->withCaption()
-                ->create([
-                    'portfolio_id' => $portfolio->id,
-                    'sort_order' => 99,
-                ]);
+        foreach ($publishedPortfolios as $portfolio) {
+            $imageCount = fake()->numberBetween(2, 4);
+
+            for ($i = 0; $i < $imageCount; $i++) {
+                $portfolio
+                    ->addMediaFromUrl('https://picsum.photos/800/600')
+                    ->withCustomProperties([
+                        'sort_order' => $i,
+                        'caption' => fake()->boolean(40) ? fake()->randomElement($captions) : null,
+                    ])
+                    ->toMediaCollection('gallery');
+            }
+
+            // Add a featured image
+            $portfolio
+                ->addMediaFromUrl('https://picsum.photos/1200/600')
+                ->toMediaCollection('featured');
         }
     }
 }
