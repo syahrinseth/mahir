@@ -32,7 +32,7 @@ class CreateArticleRequest extends FormRequest
             /** Scheduled publication date and time. */
             'published_at' => ['nullable', 'date'],
             /** The series this article belongs to. */
-            'series_id' => ['nullable', 'integer'],
+            'series_id' => ['nullable', 'integer', 'exists:tenant.article_series,id'],
             /** The article's position within the series. */
             'series_order' => ['nullable', 'integer', 'min:0'],
         ];
@@ -47,6 +47,7 @@ class CreateArticleRequest extends FormRequest
             'title.required' => 'A title is required.',
             'content.required' => 'Article content is required.',
             'status.Illuminate\Validation\Rules\Enum' => 'The selected status is invalid.',
+            'series_id.exists' => 'The selected series does not exist.',
         ];
     }
 }

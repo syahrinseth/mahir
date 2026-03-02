@@ -75,6 +75,7 @@ class ArticleService implements ServiceContract
         $dto = new UpdateArticleDTO(
             status: ArticleStatus::Published,
             publishedAt: now()->toDateTimeString(),
+            providedFields: ['status', 'published_at'],
         );
 
         $updated = $this->articleRepository->update($id, $dto->toArray());
@@ -89,6 +90,7 @@ class ArticleService implements ServiceContract
     {
         $dto = new UpdateArticleDTO(
             status: ArticleStatus::Archived,
+            providedFields: ['status'],
         );
 
         $updated = $this->articleRepository->update($id, $dto->toArray());
@@ -252,6 +254,7 @@ class ArticleService implements ServiceContract
             title: $revision->title,
             content: $revision->content,
             description: $revision->description,
+            providedFields: ['title', 'content', 'description'],
         );
 
         $updated = $this->articleRepository->update($articleId, $dto->toArray());

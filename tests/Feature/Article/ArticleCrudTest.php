@@ -110,6 +110,28 @@ test('creating article fails with invalid status', function () {
         ->assertJsonValidationErrors(['status']);
 });
 
+test('creating article fails with non-existent series_id', function () {
+    $response = $this->postJson('/api/v1/articles', [
+        'title' => 'Bad Series',
+        'content' => 'Some content.',
+        'series_id' => 99999,
+    ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['series_id']);
+});
+
+test('updating article fails with non-existent series_id', function () {
+    $article = Article::factory()->create(['user_id' => $this->user->id]);
+
+    $response = $this->putJson("/api/v1/articles/{$article->id}", [
+        'series_id' => 99999,
+    ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['series_id']);
+});
+
 /*
 |--------------------------------------------------------------------------
 | Show
@@ -159,6 +181,60 @@ test('can update an article', function () {
     $response->assertSuccessful()
         ->assertJsonPath('message', 'Article updated successfully.')
         ->assertJsonPath('data.title', 'Updated Title');
+});
+
+test('updating other fields does not wipe series_id', function () {
+    $series = ArticleSeries::factory()->create(['user_id' => $this->user->id]);
+    $article = Article::factory()->create(['user_id' => $this->user->id, 'series_id' => $series->id]);
+
+    $this->putJson("/api/v1/articles/{$article->id}", [
+        'title' => 'New Title Only',
+    ])->assertSuccessful();
+
+    expect($article->fresh()->series_id)->toBe($series->id);
+});
+
+test('can update article series_id', function () {
+    $series = ArticleSeries::factory()->create(['user_id' => $this->user->id]);
+    $article = Article::factory()->create(['user_id' => $this->user->id, 'series_id' => null]);
+
+    $response = $this->putJson("/api/v1/articles/{$article->id}", [
+        'series_id' => $series->id,
+    ]);
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.series_id', $series->id);
+
+    expect($article->fresh()->series_id)->toBe($series->id);
+});
+
+test('can change article to a different series', function () {
+    $seriesA = ArticleSeries::factory()->create(['user_id' => $this->user->id]);
+    $seriesB = ArticleSeries::factory()->create(['user_id' => $this->user->id]);
+    $article = Article::factory()->create(['user_id' => $this->user->id, 'series_id' => $seriesA->id]);
+
+    $response = $this->putJson("/api/v1/articles/{$article->id}", [
+        'series_id' => $seriesB->id,
+    ]);
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.series_id', $seriesB->id);
+
+    expect($article->fresh()->series_id)->toBe($seriesB->id);
+});
+
+test('can clear article series_id by setting it to null', function () {
+    $series = ArticleSeries::factory()->create(['user_id' => $this->user->id]);
+    $article = Article::factory()->create(['user_id' => $this->user->id, 'series_id' => $series->id]);
+
+    $response = $this->putJson("/api/v1/articles/{$article->id}", [
+        'series_id' => null,
+    ]);
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.series_id', null);
+
+    expect($article->fresh()->series_id)->toBeNull();
 });
 
 test('updating an article creates a revision', function () {

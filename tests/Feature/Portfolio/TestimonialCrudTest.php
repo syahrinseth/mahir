@@ -248,6 +248,71 @@ test('can update multiple fields including falsy values', function () {
         ->and($fresh->client_name)->toBe('New Name');
 });
 
+test('updating testimonial fails with non-existent portfolio_id', function () {
+    $testimonial = Testimonial::factory()->create(['user_id' => $this->user->id]);
+
+    $response = $this->putJson("/api/v1/testimonials/{$testimonial->id}", [
+        'portfolio_id' => 99999,
+    ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['portfolio_id']);
+});
+
+test('updating other fields does not wipe portfolio_id', function () {
+    $portfolio = Portfolio::factory()->create(['user_id' => $this->user->id]);
+    $testimonial = Testimonial::factory()->create(['user_id' => $this->user->id, 'portfolio_id' => $portfolio->id]);
+
+    $this->putJson("/api/v1/testimonials/{$testimonial->id}", [
+        'client_name' => 'New Name Only',
+    ])->assertSuccessful();
+
+    expect($testimonial->fresh()->portfolio_id)->toBe($portfolio->id);
+});
+
+test('can update testimonial portfolio_id', function () {
+    $portfolio = Portfolio::factory()->create(['user_id' => $this->user->id]);
+    $testimonial = Testimonial::factory()->create(['user_id' => $this->user->id, 'portfolio_id' => null]);
+
+    $response = $this->putJson("/api/v1/testimonials/{$testimonial->id}", [
+        'portfolio_id' => $portfolio->id,
+    ]);
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.portfolio_id', $portfolio->id);
+
+    expect($testimonial->fresh()->portfolio_id)->toBe($portfolio->id);
+});
+
+test('can change testimonial to a different portfolio', function () {
+    $portfolioA = Portfolio::factory()->create(['user_id' => $this->user->id]);
+    $portfolioB = Portfolio::factory()->create(['user_id' => $this->user->id]);
+    $testimonial = Testimonial::factory()->create(['user_id' => $this->user->id, 'portfolio_id' => $portfolioA->id]);
+
+    $response = $this->putJson("/api/v1/testimonials/{$testimonial->id}", [
+        'portfolio_id' => $portfolioB->id,
+    ]);
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.portfolio_id', $portfolioB->id);
+
+    expect($testimonial->fresh()->portfolio_id)->toBe($portfolioB->id);
+});
+
+test('can clear testimonial portfolio_id by setting it to null', function () {
+    $portfolio = Portfolio::factory()->create(['user_id' => $this->user->id]);
+    $testimonial = Testimonial::factory()->create(['user_id' => $this->user->id, 'portfolio_id' => $portfolio->id]);
+
+    $response = $this->putJson("/api/v1/testimonials/{$testimonial->id}", [
+        'portfolio_id' => null,
+    ]);
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.portfolio_id', null);
+
+    expect($testimonial->fresh()->portfolio_id)->toBeNull();
+});
+
 test('updating a non-existent testimonial returns 404', function () {
     $response = $this->putJson('/api/v1/testimonials/99999', [
         'client_name' => 'Updated Name',
