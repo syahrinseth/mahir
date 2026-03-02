@@ -22,7 +22,7 @@ class UpdateTestimonialRequest extends FormRequest
             /** The testimonial content/review text. */
             'content' => ['sometimes', 'string'],
             /** Optional portfolio project this testimonial relates to. */
-            'portfolio_id' => ['nullable', 'integer', 'exists:portfolios,id'],
+            'portfolio_id' => ['nullable', 'integer', 'exists:tenant.portfolios,id'],
             /** The client's job title or position. */
             'client_position' => ['nullable', 'string', 'max:255'],
             /** The client's company name. */
