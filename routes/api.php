@@ -2,6 +2,7 @@
 
 use App\Modules\Article\Http\Controllers\ArticleCommentController;
 use App\Modules\Article\Http\Controllers\ArticleController;
+use App\Modules\Article\Http\Controllers\ArticleMediaController;
 use App\Modules\Article\Http\Controllers\ArticleRevisionController;
 use App\Modules\Article\Http\Controllers\ArticleSeriesController;
 use App\Modules\Auth\Http\Controllers\AuthController;
@@ -58,6 +59,7 @@ Route::prefix('articles')->group(function () {
     Route::get('/', [ArticleController::class, 'index'])->name('api.articles.index');
     Route::get('/{article}', [ArticleController::class, 'show'])->name('api.articles.show');
     Route::get('/{article}/comments', [ArticleCommentController::class, 'index'])->name('api.articles.comments.index');
+    Route::get('/{article}/media', [ArticleMediaController::class, 'index'])->name('api.articles.media.index');
 
     // Authenticated write endpoints
     Route::middleware('auth:sanctum')->group(function () {
@@ -70,6 +72,11 @@ Route::prefix('articles')->group(function () {
         // Article Comments (write)
         Route::post('/{article}/comments', [ArticleCommentController::class, 'store'])->name('api.articles.comments.store');
         Route::delete('/{article}/comments/{comment}', [ArticleCommentController::class, 'destroy'])->name('api.articles.comments.destroy');
+
+        // Article Media (write)
+        Route::post('/{article}/media', [ArticleMediaController::class, 'store'])->name('api.articles.media.store');
+        Route::delete('/{article}/media/{media}', [ArticleMediaController::class, 'destroy'])->name('api.articles.media.destroy');
+        Route::put('/{article}/media/reorder', [ArticleMediaController::class, 'reorder'])->name('api.articles.media.reorder');
 
         // Article Revisions (auth-only)
         Route::get('/{article}/revisions', [ArticleRevisionController::class, 'index'])->name('api.articles.revisions.index');

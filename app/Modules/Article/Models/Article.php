@@ -11,12 +11,19 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * Tenant-scoped article model.
  *
  * Each tenant has its own articles table in its own database.
  * Content is stored as Markdown for frontend-agnostic rendering.
+ *
+ * Media is handled by Spatie Media Library with two named collections:
+ * - 'gallery' (multiple files: jpg, png, webp, gif, svg, pdf)
+ * - 'featured' (single file: jpg, png, webp)
  *
  * @property int $id
  * @property int $user_id
@@ -26,7 +33,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $content
  * @property string|null $description
  * @property ArticleStatus $status
- * @property string|null $featured_image
  * @property \Illuminate\Support\Carbon|null $published_at
  * @property int $views_count
  * @property int|null $series_order
@@ -34,9 +40,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property \Illuminate\Support\Carbon $updated_at
  */
 #[UseFactory(ArticleFactory::class)]
-class Article extends Model
+class Article extends Model implements HasMedia
 {
-    use HasFactory, UsesTenantConnection;
+    use HasFactory, InteractsWithMedia, UsesTenantConnection;
 
     /** @var list<string> */
     protected $fillable = [
@@ -47,7 +53,6 @@ class Article extends Model
         'content',
         'description',
         'status',
-        'featured_image',
         'published_at',
         'views_count',
         'series_order',
@@ -64,6 +69,45 @@ class Article extends Model
             'views_count' => 'integer',
             'series_order' => 'integer',
         ];
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('gallery')
+            ->acceptsMimeTypes([
+                'image/jpeg',
+                'image/png',
+                'image/webp',
+                'image/gif',
+                'image/svg+xml',
+                'application/pdf',
+            ]);
+
+        $this->addMediaCollection('featured')
+            ->singleFile()
+            ->acceptsMimeTypes([
+                'image/jpeg',
+                'image/png',
+                'image/webp',
+            ]);
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('thumb')
+            ->width(300)
+            ->height(300)
+            ->nonQueued();
+
+        $this->addMediaConversion('medium')
+            ->width(600)
+            ->height(400)
+            ->nonQueued();
+
+        $this->addMediaConversion('display')
+            ->width(1200)
+            ->height(600)
+            ->nonQueued();
     }
 
     /**

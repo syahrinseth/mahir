@@ -16,6 +16,8 @@ use App\Modules\Article\Repositories\ArticleRepository;
 use App\Modules\Article\Repositories\ArticleSeriesRepository;
 use App\Shared\Contracts\ServiceContract;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\UploadedFile;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * Business logic for managing articles, series, comments, and revisions.
@@ -271,5 +273,71 @@ class ArticleService implements ServiceContract
             'change_summary' => $changeSummary,
             'created_at' => now(),
         ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Media (Spatie Media Library)
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Add a media file to an article collection.
+     *
+     * @param  array{caption?: string|null, alt_text?: string|null, sort_order?: int|null}  $properties
+     */
+    public function addMediaToArticle(
+        Article $article,
+        UploadedFile $file,
+        string $collection = 'gallery',
+        array $properties = [],
+    ): Media {
+        $customProperties = array_filter([
+            'caption' => $properties['caption'] ?? null,
+            'alt_text' => $properties['alt_text'] ?? null,
+            'sort_order' => $properties['sort_order'] ?? null,
+        ], fn ($value) => $value !== null);
+
+        return $article
+            ->addMedia($file)
+            ->withCustomProperties($customProperties)
+            ->toMediaCollection($collection);
+    }
+
+    /**
+     * Delete a media item.
+     */
+    public function deleteMedia(int $mediaId): bool
+    {
+        $mediaClass = config('media-library.media_model');
+        $media = $mediaClass::query()->find($mediaId);
+
+        if (! $media) {
+            return false;
+        }
+
+        $media->delete();
+
+        return true;
+    }
+
+    /**
+     * Get all media for an article from a specific collection.
+     *
+     * @return \Spatie\MediaLibrary\MediaCollections\Models\Collections\MediaCollection<int, Media>
+     */
+    public function getMediaForArticle(Article $article, string $collection = 'gallery'): \Spatie\MediaLibrary\MediaCollections\Models\Collections\MediaCollection
+    {
+        return $article->getMedia($collection);
+    }
+
+    /**
+     * Reorder media items for an article.
+     *
+     * @param  list<int>  $mediaIds  Ordered list of media IDs.
+     */
+    public function reorderMedia(Article $article, array $mediaIds): void
+    {
+        Media::setNewOrder($mediaIds);
     }
 }

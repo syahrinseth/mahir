@@ -29,8 +29,6 @@ class UpdateArticleRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:500'],
             /** The article status. */
             'status' => ['sometimes', 'string', Rule::enum(ArticleStatus::class)],
-            /** URL to a featured image. */
-            'featured_image' => ['nullable', 'string', 'max:2048'],
             /** Scheduled publication date and time. */
             'published_at' => ['nullable', 'date'],
             /** The series this article belongs to. */

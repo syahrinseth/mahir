@@ -31,7 +31,6 @@ class ArticleFactory extends Factory
             'content' => fake()->paragraphs(3, true),
             'description' => fake()->sentence(),
             'status' => ArticleStatus::Draft->value,
-            'featured_image' => null,
             'published_at' => null,
             'views_count' => 0,
             'series_order' => null,
@@ -99,16 +98,6 @@ class ArticleFactory extends Factory
     {
         return $this->state(fn (array $attributes): array => [
             'views_count' => $count,
-        ]);
-    }
-
-    /**
-     * Set a featured image on the article.
-     */
-    public function withFeaturedImage(): static
-    {
-        return $this->state(fn (array $attributes): array => [
-            'featured_image' => fake()->imageUrl(),
         ]);
     }
 }

@@ -40,9 +40,6 @@ class ArticleForm
                 TextInput::make('series_order')
                     ->numeric()
                     ->minValue(0),
-                TextInput::make('featured_image')
-                    ->url()
-                    ->maxLength(2048),
             ]);
     }
 }

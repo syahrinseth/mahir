@@ -17,7 +17,7 @@ class CreateArticleAction implements ActionContract
     ) {}
 
     /**
-     * @param  array{user_id: int, title: string, slug: string, content: string, description?: string|null, status?: string, featured_image?: string|null, published_at?: string|null, series_id?: int|null, series_order?: int|null}  $data
+     * @param  array{user_id: int, title: string, slug: string, content: string, description?: string|null, status?: string, published_at?: string|null, series_id?: int|null, series_order?: int|null}  $data
      */
     public function execute(array $data): Article
     {

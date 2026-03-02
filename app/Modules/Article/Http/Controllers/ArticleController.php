@@ -66,7 +66,7 @@ class ArticleController extends Controller
          *
          * @status 201
          *
-         * @body array{message: string, data: array{id: int, user_id: int, title: string, slug: string, content: string, description: ?string, status: string, featured_image: ?string, published_at: ?string, views_count: int, created_at: string, updated_at: string}}
+         * @body array{message: string, data: array{id: int, user_id: int, title: string, slug: string, content: string, description: ?string, status: string, published_at: ?string, views_count: int, created_at: string, updated_at: string}}
          */
         return response()->json([
             'message' => 'Article created successfully.',
@@ -98,7 +98,7 @@ class ArticleController extends Controller
         /**
          * Article details.
          *
-         * @body array{data: array{id: int, user_id: int, title: string, slug: string, content: string, description: ?string, status: string, featured_image: ?string, published_at: ?string, views_count: int, created_at: string, updated_at: string}}
+         * @body array{data: array{id: int, user_id: int, title: string, slug: string, content: string, description: ?string, status: string, published_at: ?string, views_count: int, created_at: string, updated_at: string}}
          */
         return response()->json([
             'data' => $article->load(['author', 'series']),
@@ -127,7 +127,7 @@ class ArticleController extends Controller
         /**
          * Article updated successfully.
          *
-         * @body array{message: string, data: array{id: int, user_id: int, title: string, slug: string, content: string, description: ?string, status: string, featured_image: ?string, published_at: ?string, views_count: int, created_at: string, updated_at: string}}
+         * @body array{message: string, data: array{id: int, user_id: int, title: string, slug: string, content: string, description: ?string, status: string, published_at: ?string, views_count: int, created_at: string, updated_at: string}}
          */
         return response()->json([
             'message' => 'Article updated successfully.',

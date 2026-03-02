@@ -20,7 +20,7 @@ class ArticleRepository implements RepositoryContract
 
     public function findById(int $id): ?Article
     {
-        return Article::query()->with(['author', 'series'])->find($id);
+        return Article::query()->with(['author', 'series', 'media'])->find($id);
     }
 
     /**

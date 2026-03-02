@@ -597,5 +597,86 @@ routes/api.php (MODIFIED -- add testimonial routes)
 - [ ] Write TestimonialDtoTest (unit tests for DTO serialization)
 
 #### Phase T8: Format and Verify
+- [x] Run vendor/bin/pint --dirty --format agent
+- [x] Run php artisan test --compact to verify all tests pass
+
+---
+
+## Article Media Feature -- Article Module
+
+### Architecture
+
+Follows exact Portfolio media patterns:
+- Spatie Media Library with two collections: `gallery` (multiple) and `featured` (single)
+- Three conversions: thumb (300x300), medium (600x400), display (1200x600) -- all nonQueued()
+- Custom properties on gallery: caption (string, max 500), alt_text (string, max 255), sort_order (int)
+- Remove `featured_image` column entirely -- Spatie is single source of truth
+- Status-based visibility: Draft/Archived articles hide media from guests; Published articles show media publicly
+- API-only (no Filament resources)
+- Article uses ArticleStatus enum (Draft/Published/Archived) + published_at for visibility checks
+
+### API Endpoints
+
+```
+Public:
+  GET  /api/v1/articles/{article}/media              -> list media (public for published, auth for all)
+
+Authenticated (auth:sanctum):
+  POST   /api/v1/articles/{article}/media              -> upload media file
+  DELETE /api/v1/articles/{article}/media/{media}       -> delete media item
+  PUT    /api/v1/articles/{article}/media/reorder       -> reorder media items
+```
+
+### File Structure
+
+```
+app/Modules/Article/
+  Models/Article.php (MODIFIED -- add HasMedia, InteractsWithMedia, media collections/conversions)
+  DTOs/CreateArticleMediaDTO.php (NEW)
+  Repositories/ArticleRepository.php (MODIFIED -- eager-load media in findById)
+  Services/ArticleService.php (MODIFIED -- add media methods section)
+  Http/Controllers/ArticleMediaController.php (NEW)
+  Http/Requests/StoreArticleMediaRequest.php (NEW)
+
+database/
+  factories/ArticleFactory.php (MODIFIED -- remove featured_image)
+  migrations/tenant/2026_03_02_000003_remove_featured_image_from_articles_table.php (NEW)
+
+tests/Feature/Article/ArticleMediaTest.php (NEW)
+tests/Feature/Article/ArticleCrudTest.php (MODIFIED -- remove featured_image references)
+
+routes/api.php (MODIFIED -- add article media routes)
+```
+
+### Implementation Plan
+
+#### Phase A1: Migration + Model Layer
+- [ ] Create migration to remove featured_image column from articles table
+- [ ] Modify Article model: add HasMedia, InteractsWithMedia, registerMediaCollections(), registerMediaConversions()
+- [ ] Remove featured_image from Article $fillable and PHPDoc
+- [ ] Update ArticleFactory to remove featured_image references
+
+#### Phase A2: DTOs + Repository
+- [ ] Create CreateArticleMediaDTO (caption, alt_text, sort_order)
+- [ ] Modify ArticleRepository findById() to eager-load media
+- [ ] Remove featured_image from CreateArticleDTO and UpdateArticleDTO
+
+#### Phase A3: Service Layer
+- [ ] Add media section to ArticleService: addMediaToArticle(), deleteMedia(), getMediaForArticle(), reorderMedia()
+
+#### Phase A4: Form Requests
+- [ ] Create StoreArticleMediaRequest (file, caption, alt_text, sort_order, collection validation)
+
+#### Phase A5: Controllers + Routes
+- [ ] Create ArticleMediaController (index, store, destroy, reorder)
+- [ ] Add article media routes to routes/api.php
+
+#### Phase A6: Tests
+- [ ] Create ArticleMediaTest.php (media CRUD, validation, status-based visibility, auth)
+
+#### Phase A7: Test Refactoring
+- [ ] Update ArticleCrudTest.php to remove featured_image references
+
+#### Phase A8: Format + Verify
 - [ ] Run vendor/bin/pint --dirty --format agent
 - [ ] Run php artisan test --compact to verify all tests pass

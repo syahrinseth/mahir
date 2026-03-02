@@ -12,14 +12,13 @@ class UpdateArticleDTO
         public readonly ?string $content = null,
         public readonly ?string $description = null,
         public readonly ?ArticleStatus $status = null,
-        public readonly ?string $featuredImage = null,
         public readonly ?string $publishedAt = null,
         public readonly ?int $seriesId = null,
         public readonly ?int $seriesOrder = null,
     ) {}
 
     /**
-     * @param  array{title?: string, slug?: string, content?: string, description?: string|null, status?: string, featured_image?: string|null, published_at?: string|null, series_id?: int|null, series_order?: int|null}  $data
+     * @param  array{title?: string, slug?: string, content?: string, description?: string|null, status?: string, published_at?: string|null, series_id?: int|null, series_order?: int|null}  $data
      */
     public static function fromArray(array $data): self
     {
@@ -29,7 +28,6 @@ class UpdateArticleDTO
             content: $data['content'] ?? null,
             description: $data['description'] ?? null,
             status: isset($data['status']) ? ArticleStatus::from($data['status']) : null,
-            featuredImage: $data['featured_image'] ?? null,
             publishedAt: $data['published_at'] ?? null,
             seriesId: $data['series_id'] ?? null,
             seriesOrder: $data['series_order'] ?? null,
@@ -47,7 +45,6 @@ class UpdateArticleDTO
             'content' => $this->content,
             'description' => $this->description,
             'status' => $this->status?->value,
-            'featured_image' => $this->featuredImage,
             'published_at' => $this->publishedAt,
             'series_id' => $this->seriesId,
             'series_order' => $this->seriesOrder,
