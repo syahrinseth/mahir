@@ -266,10 +266,105 @@ test('archiving a non-existent portfolio returns 404', function () {
 |--------------------------------------------------------------------------
 */
 
-test('unauthenticated user cannot access portfolios', function () {
+test('unauthenticated user cannot create portfolios', function () {
     $this->app['auth']->forgetGuards();
+
+    $response = $this->postJson('/api/v1/portfolios', [
+        'title' => 'Test',
+        'description' => 'Test description.',
+    ]);
+
+    $response->assertUnauthorized();
+});
+
+test('unauthenticated user cannot update portfolios', function () {
+    $this->app['auth']->forgetGuards();
+
+    $portfolio = Portfolio::factory()->create();
+
+    $response = $this->putJson("/api/v1/portfolios/{$portfolio->id}", [
+        'title' => 'Updated',
+    ]);
+
+    $response->assertUnauthorized();
+});
+
+test('unauthenticated user cannot delete portfolios', function () {
+    $this->app['auth']->forgetGuards();
+
+    $portfolio = Portfolio::factory()->create();
+
+    $response = $this->deleteJson("/api/v1/portfolios/{$portfolio->id}");
+
+    $response->assertUnauthorized();
+});
+
+/*
+|--------------------------------------------------------------------------
+| Public Access
+|--------------------------------------------------------------------------
+*/
+
+test('unauthenticated user can list published portfolios', function () {
+    $this->app['auth']->forgetGuards();
+
+    Portfolio::factory()->published()->count(2)->create();
+    Portfolio::factory()->draft()->count(1)->create();
+    Portfolio::factory()->archived()->count(1)->create();
 
     $response = $this->getJson('/api/v1/portfolios');
 
-    $response->assertUnauthorized();
+    $response->assertSuccessful()
+        ->assertJsonCount(2, 'data');
+});
+
+test('unauthenticated user can view a published portfolio', function () {
+    $this->app['auth']->forgetGuards();
+
+    $portfolio = Portfolio::factory()->published()->create();
+
+    $response = $this->getJson("/api/v1/portfolios/{$portfolio->id}");
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.id', $portfolio->id);
+});
+
+test('unauthenticated user cannot view a draft portfolio', function () {
+    $this->app['auth']->forgetGuards();
+
+    $portfolio = Portfolio::factory()->draft()->create();
+
+    $response = $this->getJson("/api/v1/portfolios/{$portfolio->id}");
+
+    $response->assertNotFound();
+});
+
+test('unauthenticated user cannot view an archived portfolio', function () {
+    $this->app['auth']->forgetGuards();
+
+    $portfolio = Portfolio::factory()->archived()->create();
+
+    $response = $this->getJson("/api/v1/portfolios/{$portfolio->id}");
+
+    $response->assertNotFound();
+});
+
+test('authenticated user can list all portfolios regardless of status', function () {
+    Portfolio::factory()->published()->count(2)->create(['user_id' => $this->user->id]);
+    Portfolio::factory()->draft()->count(1)->create(['user_id' => $this->user->id]);
+    Portfolio::factory()->archived()->count(1)->create(['user_id' => $this->user->id]);
+
+    $response = $this->getJson('/api/v1/portfolios');
+
+    $response->assertSuccessful()
+        ->assertJsonCount(4, 'data');
+});
+
+test('authenticated user can view a draft portfolio', function () {
+    $portfolio = Portfolio::factory()->draft()->create(['user_id' => $this->user->id]);
+
+    $response = $this->getJson("/api/v1/portfolios/{$portfolio->id}");
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.id', $portfolio->id);
 });

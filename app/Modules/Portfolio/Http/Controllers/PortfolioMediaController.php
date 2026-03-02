@@ -20,10 +20,14 @@ class PortfolioMediaController extends Controller
 
     /**
      * List all media for a portfolio item.
+     *
+     * Unauthenticated requests can only access media for published portfolios.
      */
-    public function index(int $portfolioId): JsonResponse
+    public function index(Request $request, int $portfolioId): JsonResponse
     {
-        $portfolio = $this->portfolioRepository->findById($portfolioId);
+        $portfolio = $request->user()
+            ? $this->portfolioRepository->findById($portfolioId)
+            : $this->portfolioRepository->findPublishedById($portfolioId);
 
         if (! $portfolio) {
             abort(404, 'Portfolio not found.');

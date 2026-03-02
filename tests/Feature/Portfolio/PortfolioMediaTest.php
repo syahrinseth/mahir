@@ -216,12 +216,68 @@ test('reordering media fails without media_ids', function () {
 |--------------------------------------------------------------------------
 */
 
-test('unauthenticated user cannot access portfolio media', function () {
+test('unauthenticated user cannot upload portfolio media', function () {
     $this->app['auth']->forgetGuards();
 
-    $portfolio = Portfolio::factory()->create();
+    $portfolio = Portfolio::factory()->published()->create();
+    $file = UploadedFile::fake()->image('screenshot.jpg');
+
+    $response = $this->postJson("/api/v1/portfolios/{$portfolio->id}/media", [
+        'file' => $file,
+    ]);
+
+    $response->assertUnauthorized();
+});
+
+test('unauthenticated user cannot delete portfolio media', function () {
+    $this->app['auth']->forgetGuards();
+
+    $portfolio = Portfolio::factory()->published()->create();
+    $media = $portfolio->addMedia(UploadedFile::fake()->image('photo.jpg'))->toMediaCollection('gallery');
+
+    $response = $this->deleteJson("/api/v1/portfolios/{$portfolio->id}/media/{$media->id}");
+
+    $response->assertUnauthorized();
+});
+
+test('unauthenticated user cannot reorder portfolio media', function () {
+    $this->app['auth']->forgetGuards();
+
+    $portfolio = Portfolio::factory()->published()->create();
+
+    $response = $this->putJson("/api/v1/portfolios/{$portfolio->id}/media/reorder", [
+        'media_ids' => [1, 2, 3],
+    ]);
+
+    $response->assertUnauthorized();
+});
+
+/*
+|--------------------------------------------------------------------------
+| Public Access
+|--------------------------------------------------------------------------
+*/
+
+test('unauthenticated user can list media for a published portfolio', function () {
+    $this->app['auth']->forgetGuards();
+
+    $portfolio = Portfolio::factory()->published()->create();
+
+    $portfolio->addMedia(UploadedFile::fake()->image('photo1.jpg'))->toMediaCollection('gallery');
+    $portfolio->addMedia(UploadedFile::fake()->image('photo2.jpg'))->toMediaCollection('gallery');
 
     $response = $this->getJson("/api/v1/portfolios/{$portfolio->id}/media");
 
-    $response->assertUnauthorized();
+    $response->assertSuccessful()
+        ->assertJsonCount(2, 'data');
+});
+
+test('unauthenticated user cannot list media for a draft portfolio', function () {
+    $this->app['auth']->forgetGuards();
+
+    $portfolio = Portfolio::factory()->draft()->create();
+
+    $response = $this->getJson("/api/v1/portfolios/{$portfolio->id}/media");
+
+    $response->assertNotFound();
 });

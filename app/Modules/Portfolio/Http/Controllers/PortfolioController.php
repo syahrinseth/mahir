@@ -11,6 +11,7 @@ use App\Modules\Portfolio\Repositories\PortfolioRepository;
 use App\Modules\Portfolio\Services\PortfolioService;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 #[Group('Portfolios', weight: 7)]
@@ -23,10 +24,14 @@ class PortfolioController extends Controller
 
     /**
      * List all portfolio items.
+     *
+     * Unauthenticated requests only see published portfolio items.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $portfolios = $this->repository->all();
+        $portfolios = $request->user()
+            ? $this->repository->all()
+            : $this->repository->findPublished();
 
         return response()->json(['data' => $portfolios]);
     }
@@ -51,10 +56,14 @@ class PortfolioController extends Controller
 
     /**
      * Show a specific portfolio item.
+     *
+     * Unauthenticated requests can only access published portfolio items.
      */
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
-        $portfolio = $this->repository->findById($id);
+        $portfolio = $request->user()
+            ? $this->repository->findById($id)
+            : $this->repository->findPublishedById($id);
 
         if (! $portfolio) {
             abort(404, 'Portfolio not found.');

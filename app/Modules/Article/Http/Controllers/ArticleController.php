@@ -13,6 +13,7 @@ use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;
 use Dedoc\Scramble\Attributes\Response;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 #[Group('Articles', weight: 3)]
@@ -27,10 +28,13 @@ class ArticleController extends Controller
      * List all articles.
      *
      * Retrieves a list of all articles for the current tenant.
+     * Unauthenticated requests only see published articles.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $articles = $this->repository->all();
+        $articles = $request->user()
+            ? $this->repository->all()
+            : $this->repository->findPublished();
 
         /**
          * List of all articles.
@@ -74,13 +78,16 @@ class ArticleController extends Controller
      * Get an article.
      *
      * Retrieves a single article by its ID and increments the view counter.
+     * Unauthenticated requests can only access published articles.
      *
      * @param  int  $id  The article ID.
      */
     #[PathParameter('article', description: 'The article ID.', type: 'int', example: 1)]
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
-        $article = $this->repository->findById($id);
+        $article = $request->user()
+            ? $this->repository->findById($id)
+            : $this->repository->findPublishedById($id);
 
         if (! $article) {
             abort(404, 'Article not found.');

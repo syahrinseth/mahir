@@ -466,3 +466,136 @@ app/Modules/AI/
 
 2026-02-28 - Plan created from conversation discussion. Architecture defined with laravel/ai SDK integration.
 2026-02-28 - Plan updated with final decisions: laravel/ai v0.2.5 pinned, OpenAI default, app/Modules/AI/ structure, /api/v1/ prefix, tenant-only migrations, platform shared keys, manual class creation. Added SDK conventions reference, existing model inventory, and @laravel/stream-react as frontend option.
+
+---
+## Appended: 2026-03-02
+
+## Testimonial Feature -- Portfolio Module
+
+### Architecture
+
+Follows exact Portfolio module patterns:
+- Separate TestimonialService (not merged into PortfolioService)
+- Spatie Media Library with single `featured` collection (client headshot/logo)
+- Optional portfolio_id -- can be standalone or tied to a portfolio project
+- Published via published_at (null = draft, set = published) -- same as Portfolio
+- API-only (no Filament resources)
+- Optional star rating (1-5, nullable)
+- Owner-based authorization via TestimonialPolicy
+
+### Database Schema
+
+```
+testimonials (tenant-scoped)
+  id                  bigint PK auto-increment
+  user_id             bigint FK -> users (cascade delete)
+  portfolio_id        bigint nullable FK -> portfolios (null on delete)
+  client_name         varchar(255) NOT NULL
+  client_position     varchar(255) nullable
+  client_company      varchar(255) nullable
+  content             text NOT NULL
+  rating              unsignedTinyInt nullable (1-5)
+  is_featured         boolean default false (indexed)
+  sort_order          unsignedInt default 0 (indexed)
+  published_at        timestamp nullable (indexed)
+  created_at          timestamp
+  updated_at          timestamp
+
+Media: Spatie `featured` collection (single file: jpg, png, webp)
+Conversions: thumb (300x300), medium (600x400), display (1200x600)
+```
+
+### API Endpoints
+
+```
+Public:
+  GET  /api/v1/testimonials                          -> list published (guest) / all (auth)
+  GET  /api/v1/testimonials/{testimonial}             -> show single
+  GET  /api/v1/testimonials/{testimonial}/media        -> list featured image
+
+Authenticated (auth:sanctum):
+  POST   /api/v1/testimonials                          -> create (draft)
+  PUT    /api/v1/testimonials/{testimonial}             -> update own
+  DELETE /api/v1/testimonials/{testimonial}             -> delete own
+  POST   /api/v1/testimonials/{testimonial}/publish     -> publish
+  POST   /api/v1/testimonials/{testimonial}/media       -> upload featured image
+  DELETE /api/v1/testimonials/{testimonial}/media/{media} -> delete featured image
+  PUT    /api/v1/testimonials/{testimonial}/media/reorder -> reorder
+```
+
+### File Structure
+
+```
+app/Modules/Portfolio/
+  Models/Testimonial.php (NEW)
+  DTOs/CreateTestimonialDTO.php (NEW)
+  DTOs/UpdateTestimonialDTO.php (NEW)
+  Repositories/TestimonialRepository.php (NEW)
+  Services/TestimonialService.php (NEW -- separate service)
+  Http/Controllers/TestimonialController.php (NEW)
+  Http/Controllers/TestimonialMediaController.php (NEW)
+  Http/Requests/CreateTestimonialRequest.php (NEW)
+  Http/Requests/UpdateTestimonialRequest.php (NEW)
+  Http/Requests/StoreTestimonialMediaRequest.php (NEW)
+  Actions/CreateTestimonialAction.php (NEW)
+  Actions/UpdateTestimonialAction.php (NEW)
+  Actions/DeleteTestimonialAction.php (NEW)
+  Policies/TestimonialPolicy.php (NEW)
+  Providers/PortfolioServiceProvider.php (MODIFIED -- register testimonial bindings)
+  Models/Portfolio.php (MODIFIED -- add testimonials() HasMany)
+
+database/
+  factories/TestimonialFactory.php (NEW)
+  migrations/tenant/xxxx_create_tenant_testimonials_table.php (NEW)
+  seeders/tenant/TestimonialSeeder.php (NEW)
+
+tests/Feature/Portfolio/TestimonialCrudTest.php (NEW)
+tests/Feature/Portfolio/TestimonialMediaTest.php (NEW)
+tests/Unit/Portfolio/TestimonialDtoTest.php (NEW)
+
+routes/api.php (MODIFIED -- add testimonial routes)
+```
+
+### Implementation Plan
+
+#### Phase T1: Database and Model Layer
+- [ ] Create tenant migration for testimonials table
+- [ ] Create Testimonial model (HasFactory, InteractsWithMedia, UsesTenantConnection)
+- [ ] Add testimonials() HasMany relationship to Portfolio model
+- [ ] Create TestimonialFactory with states (published, featured, withPortfolio, withRating, withFeaturedImage)
+
+#### Phase T2: Data Transfer and Repository Layer
+- [ ] Create CreateTestimonialDTO (fromArray, toArray)
+- [ ] Create UpdateTestimonialDTO (fromArray, toArray, filter nulls)
+- [ ] Create TestimonialRepository implementing RepositoryContract (all, findById, create, update, delete)
+- [ ] Add domain-specific queries to TestimonialRepository (findPublished, findPublishedById, findByPortfolio, findFeatured)
+
+#### Phase T3: Service and Action Layer
+- [ ] Create TestimonialService implementing ServiceContract (CRUD + publish + media ops)
+- [ ] Create CreateTestimonialAction (execute with DTO delegation)
+- [ ] Create UpdateTestimonialAction (execute with DTO delegation)
+- [ ] Create DeleteTestimonialAction (execute via service)
+
+#### Phase T4: Authorization and Validation
+- [ ] Create TestimonialPolicy (viewAny, view, create, update, delete, publish)
+- [ ] Create CreateTestimonialRequest (validation rules + messages)
+- [ ] Create UpdateTestimonialRequest (validation rules + messages)
+- [ ] Create StoreTestimonialMediaRequest (file validation)
+
+#### Phase T5: Controllers and Routes
+- [ ] Create TestimonialController (index, show, store, update, destroy, publish)
+- [ ] Create TestimonialMediaController (index, store, destroy, reorder)
+- [ ] Add testimonial routes to routes/api.php (public reads + auth writes)
+- [ ] Register TestimonialRepository, TestimonialService, TestimonialPolicy in PortfolioServiceProvider
+
+#### Phase T6: Seeder
+- [ ] Create TestimonialSeeder
+
+#### Phase T7: Tests
+- [ ] Write TestimonialCrudTest (feature tests for CRUD + publish + auth)
+- [ ] Write TestimonialMediaTest (feature tests for media endpoints)
+- [ ] Write TestimonialDtoTest (unit tests for DTO serialization)
+
+#### Phase T8: Format and Verify
+- [ ] Run vendor/bin/pint --dirty --format agent
+- [ ] Run php artisan test --compact to verify all tests pass

@@ -146,10 +146,63 @@ test('deleting a non-existent category returns 404', function () {
 |--------------------------------------------------------------------------
 */
 
-test('unauthenticated user cannot access portfolio categories', function () {
+test('unauthenticated user cannot create portfolio categories', function () {
     $this->app['auth']->forgetGuards();
+
+    $response = $this->postJson('/api/v1/portfolio-categories', [
+        'name' => 'Test',
+        'slug' => 'test',
+    ]);
+
+    $response->assertUnauthorized();
+});
+
+test('unauthenticated user cannot update portfolio categories', function () {
+    $this->app['auth']->forgetGuards();
+
+    $category = PortfolioCategory::factory()->create();
+
+    $response = $this->putJson("/api/v1/portfolio-categories/{$category->id}", [
+        'name' => 'Updated',
+    ]);
+
+    $response->assertUnauthorized();
+});
+
+test('unauthenticated user cannot delete portfolio categories', function () {
+    $this->app['auth']->forgetGuards();
+
+    $category = PortfolioCategory::factory()->create();
+
+    $response = $this->deleteJson("/api/v1/portfolio-categories/{$category->id}");
+
+    $response->assertUnauthorized();
+});
+
+/*
+|--------------------------------------------------------------------------
+| Public Access
+|--------------------------------------------------------------------------
+*/
+
+test('unauthenticated user can list portfolio categories', function () {
+    $this->app['auth']->forgetGuards();
+
+    PortfolioCategory::factory()->count(3)->create();
 
     $response = $this->getJson('/api/v1/portfolio-categories');
 
-    $response->assertUnauthorized();
+    $response->assertSuccessful()
+        ->assertJsonCount(3, 'data');
+});
+
+test('unauthenticated user can view a portfolio category', function () {
+    $this->app['auth']->forgetGuards();
+
+    $category = PortfolioCategory::factory()->create();
+
+    $response = $this->getJson("/api/v1/portfolio-categories/{$category->id}");
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.id', $category->id);
 });

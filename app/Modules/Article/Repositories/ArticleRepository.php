@@ -48,6 +48,18 @@ class ArticleRepository implements RepositoryContract
             ->get();
     }
 
+    /**
+     * Find a published article by its ID.
+     */
+    public function findPublishedById(int $id): ?Article
+    {
+        return Article::query()
+            ->where('status', ArticleStatus::Published->value)
+            ->where('published_at', '<=', now())
+            ->with(['author', 'series'])
+            ->find($id);
+    }
+
     public function findBySlug(string $slug): ?Article
     {
         return Article::query()

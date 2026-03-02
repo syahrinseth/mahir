@@ -192,6 +192,21 @@ class ArticleService implements ServiceContract
             ->get();
     }
 
+    /**
+     * Get approved comments for an article (public-facing).
+     *
+     * @return Collection<int, ArticleComment>
+     */
+    public function getApprovedCommentsForArticle(int $articleId): Collection
+    {
+        return ArticleComment::query()
+            ->where('article_id', $articleId)
+            ->where('is_approved', true)
+            ->with('author')
+            ->latest()
+            ->get();
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Revisions

@@ -11,6 +11,7 @@ use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;
 use Dedoc\Scramble\Attributes\Response;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 #[Group('Article Comments', weight: 5)]
 class ArticleCommentController extends Controller
@@ -23,20 +24,25 @@ class ArticleCommentController extends Controller
     /**
      * List comments for an article.
      *
-     * Retrieves all comments for a given article.
+     * Retrieves comments for a given article.
+     * Unauthenticated requests only see approved comments on published articles.
      *
      * @param  int  $articleId  The article ID.
      */
     #[PathParameter('article', description: 'The article ID.', type: 'int', example: 1)]
-    public function index(int $articleId): JsonResponse
+    public function index(Request $request, int $articleId): JsonResponse
     {
-        $article = $this->articleRepository->findById($articleId);
+        $article = $request->user()
+            ? $this->articleRepository->findById($articleId)
+            : $this->articleRepository->findPublishedById($articleId);
 
         if (! $article) {
             abort(404, 'Article not found.');
         }
 
-        $comments = $this->articleService->getCommentsForArticle($articleId);
+        $comments = $request->user()
+            ? $this->articleService->getCommentsForArticle($articleId)
+            : $this->articleService->getApprovedCommentsForArticle($articleId);
 
         /**
          * List of comments for the article.

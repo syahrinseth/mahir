@@ -258,10 +258,105 @@ test('archiving a non-existent article returns 404', function () {
 |--------------------------------------------------------------------------
 */
 
-test('unauthenticated user cannot access articles', function () {
+test('unauthenticated user cannot create articles', function () {
     $this->app['auth']->forgetGuards();
+
+    $response = $this->postJson('/api/v1/articles', [
+        'title' => 'Test',
+        'content' => 'Content',
+    ]);
+
+    $response->assertUnauthorized();
+});
+
+test('unauthenticated user cannot update articles', function () {
+    $this->app['auth']->forgetGuards();
+
+    $article = Article::factory()->create();
+
+    $response = $this->putJson("/api/v1/articles/{$article->id}", [
+        'title' => 'Updated',
+    ]);
+
+    $response->assertUnauthorized();
+});
+
+test('unauthenticated user cannot delete articles', function () {
+    $this->app['auth']->forgetGuards();
+
+    $article = Article::factory()->create();
+
+    $response = $this->deleteJson("/api/v1/articles/{$article->id}");
+
+    $response->assertUnauthorized();
+});
+
+/*
+|--------------------------------------------------------------------------
+| Public Access
+|--------------------------------------------------------------------------
+*/
+
+test('unauthenticated user can list published articles', function () {
+    $this->app['auth']->forgetGuards();
+
+    Article::factory()->published()->count(2)->create();
+    Article::factory()->draft()->count(1)->create();
+    Article::factory()->archived()->count(1)->create();
 
     $response = $this->getJson('/api/v1/articles');
 
-    $response->assertUnauthorized();
+    $response->assertSuccessful()
+        ->assertJsonCount(2, 'data');
+});
+
+test('unauthenticated user can view a published article', function () {
+    $this->app['auth']->forgetGuards();
+
+    $article = Article::factory()->published()->create();
+
+    $response = $this->getJson("/api/v1/articles/{$article->id}");
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.id', $article->id);
+});
+
+test('unauthenticated user cannot view a draft article', function () {
+    $this->app['auth']->forgetGuards();
+
+    $article = Article::factory()->draft()->create();
+
+    $response = $this->getJson("/api/v1/articles/{$article->id}");
+
+    $response->assertNotFound();
+});
+
+test('unauthenticated user cannot view an archived article', function () {
+    $this->app['auth']->forgetGuards();
+
+    $article = Article::factory()->archived()->create();
+
+    $response = $this->getJson("/api/v1/articles/{$article->id}");
+
+    $response->assertNotFound();
+});
+
+test('authenticated user can list all articles regardless of status', function () {
+    Article::factory()->published()->count(2)->create(['user_id' => $this->user->id]);
+    Article::factory()->draft()->count(1)->create(['user_id' => $this->user->id]);
+    Article::factory()->archived()->count(1)->create(['user_id' => $this->user->id]);
+
+    $response = $this->getJson('/api/v1/articles');
+
+    $response->assertSuccessful()
+        ->assertJsonCount(4, 'data');
+});
+
+test('authenticated user can view a draft article', function () {
+    $article = Article::factory()->draft()->create(['user_id' => $this->user->id]);
+
+    $response = $this->getJson("/api/v1/articles/{$article->id}");
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.id', $article->id);
 });

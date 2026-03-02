@@ -171,10 +171,63 @@ test('deleting a series does not delete its articles', function () {
 |--------------------------------------------------------------------------
 */
 
-test('unauthenticated user cannot access article series', function () {
+test('unauthenticated user cannot create article series', function () {
     $this->app['auth']->forgetGuards();
+
+    $response = $this->postJson('/api/v1/article-series', [
+        'title' => 'Test',
+        'slug' => 'test',
+    ]);
+
+    $response->assertUnauthorized();
+});
+
+test('unauthenticated user cannot update article series', function () {
+    $this->app['auth']->forgetGuards();
+
+    $series = ArticleSeries::factory()->create();
+
+    $response = $this->putJson("/api/v1/article-series/{$series->id}", [
+        'title' => 'Updated',
+    ]);
+
+    $response->assertUnauthorized();
+});
+
+test('unauthenticated user cannot delete article series', function () {
+    $this->app['auth']->forgetGuards();
+
+    $series = ArticleSeries::factory()->create();
+
+    $response = $this->deleteJson("/api/v1/article-series/{$series->id}");
+
+    $response->assertUnauthorized();
+});
+
+/*
+|--------------------------------------------------------------------------
+| Public Access
+|--------------------------------------------------------------------------
+*/
+
+test('unauthenticated user can list article series', function () {
+    $this->app['auth']->forgetGuards();
+
+    ArticleSeries::factory()->count(3)->create();
 
     $response = $this->getJson('/api/v1/article-series');
 
-    $response->assertUnauthorized();
+    $response->assertSuccessful()
+        ->assertJsonCount(3, 'data');
+});
+
+test('unauthenticated user can view an article series', function () {
+    $this->app['auth']->forgetGuards();
+
+    $series = ArticleSeries::factory()->create();
+
+    $response = $this->getJson("/api/v1/article-series/{$series->id}");
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.id', $series->id);
 });

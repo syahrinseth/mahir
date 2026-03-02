@@ -48,6 +48,18 @@ class PortfolioRepository implements RepositoryContract
             ->get();
     }
 
+    /**
+     * Find a published portfolio by its ID.
+     */
+    public function findPublishedById(int $id): ?Portfolio
+    {
+        return Portfolio::query()
+            ->where('status', PortfolioStatus::Published->value)
+            ->where('published_at', '<=', now())
+            ->with(['author', 'category', 'media'])
+            ->find($id);
+    }
+
     public function findBySlug(string $slug): ?Portfolio
     {
         return Portfolio::query()

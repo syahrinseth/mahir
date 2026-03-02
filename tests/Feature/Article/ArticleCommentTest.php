@@ -139,12 +139,73 @@ test('deleting a non-existent comment returns 404', function () {
 |--------------------------------------------------------------------------
 */
 
-test('unauthenticated user cannot access comments', function () {
+test('unauthenticated user cannot create comments', function () {
     $this->app['auth']->forgetGuards();
 
-    $article = Article::factory()->create();
+    $article = Article::factory()->published()->create();
+
+    $response = $this->postJson("/api/v1/articles/{$article->id}/comments", [
+        'content' => 'Some comment.',
+    ]);
+
+    $response->assertUnauthorized();
+});
+
+test('unauthenticated user cannot delete comments', function () {
+    $this->app['auth']->forgetGuards();
+
+    $article = Article::factory()->published()->create();
+    $comment = ArticleComment::factory()->create([
+        'article_id' => $article->id,
+    ]);
+
+    $response = $this->deleteJson("/api/v1/articles/{$article->id}/comments/{$comment->id}");
+
+    $response->assertUnauthorized();
+});
+
+/*
+|--------------------------------------------------------------------------
+| Public Access
+|--------------------------------------------------------------------------
+*/
+
+test('unauthenticated user can list approved comments on a published article', function () {
+    $this->app['auth']->forgetGuards();
+
+    $article = Article::factory()->published()->create();
+    ArticleComment::factory()->approved()->count(2)->create(['article_id' => $article->id]);
+    ArticleComment::factory()->pending()->count(1)->create(['article_id' => $article->id]);
 
     $response = $this->getJson("/api/v1/articles/{$article->id}/comments");
 
-    $response->assertUnauthorized();
+    $response->assertSuccessful()
+        ->assertJsonCount(2, 'data');
+});
+
+test('unauthenticated user cannot list comments on a draft article', function () {
+    $this->app['auth']->forgetGuards();
+
+    $article = Article::factory()->draft()->create();
+
+    $response = $this->getJson("/api/v1/articles/{$article->id}/comments");
+
+    $response->assertNotFound();
+});
+
+test('authenticated user can list all comments including unapproved', function () {
+    $article = Article::factory()->create(['user_id' => $this->user->id]);
+    ArticleComment::factory()->approved()->count(2)->create([
+        'article_id' => $article->id,
+        'user_id' => $this->user->id,
+    ]);
+    ArticleComment::factory()->pending()->count(1)->create([
+        'article_id' => $article->id,
+        'user_id' => $this->user->id,
+    ]);
+
+    $response = $this->getJson("/api/v1/articles/{$article->id}/comments");
+
+    $response->assertSuccessful()
+        ->assertJsonCount(3, 'data');
 });
