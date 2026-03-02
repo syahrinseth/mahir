@@ -95,9 +95,9 @@ test('UpdateTestimonialDTO fromArray creates instance with partial fields', func
 });
 
 test('UpdateTestimonialDTO toArray filters null values', function () {
-    $dto = new UpdateTestimonialDTO(
-        clientName: 'Only Name',
-    );
+    $dto = UpdateTestimonialDTO::fromArray([
+        'client_name' => 'Only Name',
+    ]);
 
     $array = $dto->toArray();
 
@@ -110,12 +110,12 @@ test('UpdateTestimonialDTO toArray filters null values', function () {
 });
 
 test('UpdateTestimonialDTO toArray includes all non-null values', function () {
-    $dto = new UpdateTestimonialDTO(
-        clientName: 'Updated',
-        content: 'Updated review.',
-        rating: 5,
-        isFeatured: true,
-    );
+    $dto = UpdateTestimonialDTO::fromArray([
+        'client_name' => 'Updated',
+        'content' => 'Updated review.',
+        'rating' => 5,
+        'is_featured' => true,
+    ]);
 
     $array = $dto->toArray();
 
@@ -125,4 +125,37 @@ test('UpdateTestimonialDTO toArray includes all non-null values', function () {
         ->toHaveKey('content', 'Updated review.')
         ->toHaveKey('rating', 5)
         ->toHaveKey('is_featured', true);
+});
+
+test('UpdateTestimonialDTO toArray preserves falsy values for provided fields', function () {
+    $dto = UpdateTestimonialDTO::fromArray([
+        'is_featured' => false,
+        'sort_order' => 0,
+        'rating' => 0,
+    ]);
+
+    $array = $dto->toArray();
+
+    expect($array)
+        ->toHaveCount(3)
+        ->toHaveKey('is_featured', false)
+        ->toHaveKey('sort_order', 0)
+        ->toHaveKey('rating', 0);
+});
+
+test('UpdateTestimonialDTO toArray only includes explicitly provided fields', function () {
+    $dto = UpdateTestimonialDTO::fromArray([
+        'client_name' => 'Updated Name',
+        'is_featured' => false,
+    ]);
+
+    $array = $dto->toArray();
+
+    expect($array)
+        ->toHaveCount(2)
+        ->toHaveKey('client_name', 'Updated Name')
+        ->toHaveKey('is_featured', false)
+        ->not->toHaveKey('content')
+        ->not->toHaveKey('rating')
+        ->not->toHaveKey('sort_order');
 });

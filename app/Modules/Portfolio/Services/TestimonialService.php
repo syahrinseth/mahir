@@ -54,9 +54,9 @@ class TestimonialService implements ServiceContract
             return null;
         }
 
-        $dto = new UpdateTestimonialDTO(
-            publishedAt: now()->toDateTimeString(),
-        );
+        $dto = UpdateTestimonialDTO::fromArray([
+            'published_at' => now()->toDateTimeString(),
+        ]);
 
         $updated = $this->testimonialRepository->update($id, $dto->toArray());
 

@@ -188,6 +188,66 @@ test('can update testimonial rating', function () {
         ->assertJsonPath('data.rating', 5);
 });
 
+test('can update is_featured to false', function () {
+    $testimonial = Testimonial::factory()->create([
+        'user_id' => $this->user->id,
+        'is_featured' => true,
+    ]);
+
+    $response = $this->putJson("/api/v1/testimonials/{$testimonial->id}", [
+        'is_featured' => false,
+    ]);
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.is_featured', false);
+
+    expect($testimonial->fresh()->is_featured)->toBeFalse();
+});
+
+test('can update sort_order to 0', function () {
+    $testimonial = Testimonial::factory()->create([
+        'user_id' => $this->user->id,
+        'sort_order' => 5,
+    ]);
+
+    $response = $this->putJson("/api/v1/testimonials/{$testimonial->id}", [
+        'sort_order' => 0,
+    ]);
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.sort_order', 0);
+
+    expect($testimonial->fresh()->sort_order)->toBe(0);
+});
+
+test('can update multiple fields including falsy values', function () {
+    $testimonial = Testimonial::factory()->create([
+        'user_id' => $this->user->id,
+        'is_featured' => true,
+        'sort_order' => 5,
+        'rating' => 5,
+    ]);
+
+    $response = $this->putJson("/api/v1/testimonials/{$testimonial->id}", [
+        'is_featured' => false,
+        'sort_order' => 0,
+        'rating' => 1,
+        'client_name' => 'New Name',
+    ]);
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.is_featured', false)
+        ->assertJsonPath('data.sort_order', 0)
+        ->assertJsonPath('data.rating', 1)
+        ->assertJsonPath('data.client_name', 'New Name');
+
+    $fresh = $testimonial->fresh();
+    expect($fresh->is_featured)->toBeFalse()
+        ->and($fresh->sort_order)->toBe(0)
+        ->and($fresh->rating)->toBe(1)
+        ->and($fresh->client_name)->toBe('New Name');
+});
+
 test('updating a non-existent testimonial returns 404', function () {
     $response = $this->putJson('/api/v1/testimonials/99999', [
         'client_name' => 'Updated Name',
