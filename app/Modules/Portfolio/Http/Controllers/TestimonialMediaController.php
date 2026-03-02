@@ -22,6 +22,7 @@ class TestimonialMediaController extends Controller
      * List media for a testimonial.
      *
      * Unauthenticated requests can only access media for published testimonials.
+     * Pass `?collection=headshot` to filter by collection.
      */
     public function index(Request $request, int $testimonialId): JsonResponse
     {
@@ -33,7 +34,12 @@ class TestimonialMediaController extends Controller
             abort(404, 'Testimonial not found.');
         }
 
-        $media = $this->testimonialService->getMediaForTestimonial($testimonial);
+        /** @var string|null $collection Filter by media collection name. */
+        $collection = $request->query('collection');
+
+        $media = $collection
+            ? $this->testimonialService->getMediaForTestimonial($testimonial, $collection)
+            : $testimonial->getMedia('*');
 
         return response()->json(['data' => $media]);
     }

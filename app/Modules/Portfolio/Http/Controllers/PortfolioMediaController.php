@@ -22,6 +22,7 @@ class PortfolioMediaController extends Controller
      * List all media for a portfolio item.
      *
      * Unauthenticated requests can only access media for published portfolios.
+     * Pass `?collection=gallery` or `?collection=featured` to filter by collection.
      */
     public function index(Request $request, int $portfolioId): JsonResponse
     {
@@ -33,7 +34,12 @@ class PortfolioMediaController extends Controller
             abort(404, 'Portfolio not found.');
         }
 
-        $media = $this->portfolioService->getMediaForPortfolio($portfolio);
+        /** @var string|null $collection Filter by media collection name (gallery, featured). */
+        $collection = $request->query('collection');
+
+        $media = $collection
+            ? $this->portfolioService->getMediaForPortfolio($portfolio, $collection)
+            : $portfolio->getMedia('*');
 
         return response()->json(['data' => $media]);
     }

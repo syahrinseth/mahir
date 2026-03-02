@@ -121,12 +121,12 @@ class TestimonialService implements ServiceContract
     }
 
     /**
-     * Get the featured media for a testimonial.
+     * Get media for a testimonial from a specific collection.
      *
      * @return \Spatie\MediaLibrary\MediaCollections\Models\Collections\MediaCollection<int, Media>
      */
-    public function getMediaForTestimonial(Testimonial $testimonial): \Spatie\MediaLibrary\MediaCollections\Models\Collections\MediaCollection
+    public function getMediaForTestimonial(Testimonial $testimonial, string $collection = 'featured'): \Spatie\MediaLibrary\MediaCollections\Models\Collections\MediaCollection
     {
-        return $testimonial->getMedia('featured');
+        return $testimonial->getMedia($collection);
     }
 }
