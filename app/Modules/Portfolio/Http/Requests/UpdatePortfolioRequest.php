@@ -26,7 +26,7 @@ class UpdatePortfolioRequest extends FormRequest
             /** Rich text description or case study. */
             'description' => ['sometimes', 'string'],
             /** Optional category to group the portfolio item. */
-            'category_id' => ['nullable', 'integer'],
+            'category_id' => ['nullable', 'integer', 'exists:tenant.portfolio_categories,id'],
             /** Name of the client this project was for. */
             'client_name' => ['nullable', 'string', 'max:255'],
             /** External URL to the live project. */
@@ -54,6 +54,7 @@ class UpdatePortfolioRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'category_id.exists' => 'The selected category does not exist.',
             'project_url.url' => 'The project URL must be a valid URL.',
             'ended_at.after_or_equal' => 'The end date must be after or equal to the start date.',
             'status.Illuminate\Validation\Rules\Enum' => 'The selected status is invalid.',

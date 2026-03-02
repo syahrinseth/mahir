@@ -143,6 +143,28 @@ test('creating portfolio fails with invalid project url', function () {
         ->assertJsonValidationErrors(['project_url']);
 });
 
+test('creating portfolio fails with non-existent category_id', function () {
+    $response = $this->postJson('/api/v1/portfolios', [
+        'title' => 'Bad Category',
+        'description' => 'Some description.',
+        'category_id' => 99999,
+    ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['category_id']);
+});
+
+test('updating portfolio fails with non-existent category_id', function () {
+    $portfolio = Portfolio::factory()->create(['user_id' => $this->user->id]);
+
+    $response = $this->putJson("/api/v1/portfolios/{$portfolio->id}", [
+        'category_id' => 99999,
+    ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['category_id']);
+});
+
 /*
 |--------------------------------------------------------------------------
 | Show
@@ -181,6 +203,61 @@ test('can update a portfolio', function () {
     $response->assertSuccessful()
         ->assertJsonPath('message', 'Portfolio updated successfully.')
         ->assertJsonPath('data.title', 'Updated Title');
+});
+
+test('updating other fields does not wipe category_id', function () {
+    $category = PortfolioCategory::factory()->create(['user_id' => $this->user->id]);
+    $portfolio = Portfolio::factory()->create(['user_id' => $this->user->id, 'category_id' => $category->id]);
+
+    // Update only the title — category_id should remain untouched
+    $this->putJson("/api/v1/portfolios/{$portfolio->id}", [
+        'title' => 'New Title Only',
+    ])->assertSuccessful();
+
+    expect($portfolio->fresh()->category_id)->toBe($category->id);
+});
+
+test('can update portfolio category_id', function () {
+    $category = PortfolioCategory::factory()->create(['user_id' => $this->user->id]);
+    $portfolio = Portfolio::factory()->create(['user_id' => $this->user->id, 'category_id' => null]);
+
+    $response = $this->putJson("/api/v1/portfolios/{$portfolio->id}", [
+        'category_id' => $category->id,
+    ]);
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.category_id', $category->id);
+
+    expect($portfolio->fresh()->category_id)->toBe($category->id);
+});
+
+test('can change portfolio to a different category', function () {
+    $categoryA = PortfolioCategory::factory()->create(['user_id' => $this->user->id]);
+    $categoryB = PortfolioCategory::factory()->create(['user_id' => $this->user->id]);
+    $portfolio = Portfolio::factory()->create(['user_id' => $this->user->id, 'category_id' => $categoryA->id]);
+
+    $response = $this->putJson("/api/v1/portfolios/{$portfolio->id}", [
+        'category_id' => $categoryB->id,
+    ]);
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.category_id', $categoryB->id);
+
+    expect($portfolio->fresh()->category_id)->toBe($categoryB->id);
+});
+
+test('can clear portfolio category_id by setting it to null', function () {
+    $category = PortfolioCategory::factory()->create(['user_id' => $this->user->id]);
+    $portfolio = Portfolio::factory()->create(['user_id' => $this->user->id, 'category_id' => $category->id]);
+
+    $response = $this->putJson("/api/v1/portfolios/{$portfolio->id}", [
+        'category_id' => null,
+    ]);
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.category_id', null);
+
+    expect($portfolio->fresh()->category_id)->toBeNull();
 });
 
 test('updating a non-existent portfolio returns 404', function () {
