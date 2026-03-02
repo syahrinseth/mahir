@@ -22,6 +22,7 @@ class ArticleMediaController extends Controller
      * List all media for an article.
      *
      * Unauthenticated requests can only access media for published articles.
+     * Pass `?collection=gallery` or `?collection=featured` to filter by collection.
      */
     public function index(Request $request, int $articleId): JsonResponse
     {
@@ -33,7 +34,12 @@ class ArticleMediaController extends Controller
             abort(404, 'Article not found.');
         }
 
-        $media = $this->articleService->getMediaForArticle($article);
+        /** @var string|null $collection Filter by media collection name (gallery, featured). */
+        $collection = $request->query('collection');
+
+        $media = $collection
+            ? $this->articleService->getMediaForArticle($article, $collection)
+            : $article->getMedia('*');
 
         return response()->json(['data' => $media]);
     }
