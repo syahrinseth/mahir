@@ -6,7 +6,6 @@ use App\Modules\Portfolio\DTOs\CreatePortfolioCategoryDTO;
 use App\Modules\Portfolio\DTOs\CreatePortfolioDTO;
 use App\Modules\Portfolio\DTOs\UpdatePortfolioCategoryDTO;
 use App\Modules\Portfolio\DTOs\UpdatePortfolioDTO;
-use App\Modules\Portfolio\Enums\PortfolioStatus;
 use App\Modules\Portfolio\Models\Portfolio;
 use App\Modules\Portfolio\Models\PortfolioCategory;
 use App\Modules\Portfolio\Repositories\PortfolioCategoryRepository;
@@ -60,10 +59,10 @@ class PortfolioService implements ServiceContract
             return null;
         }
 
-        $dto = new UpdatePortfolioDTO(
-            status: PortfolioStatus::Published,
-            publishedAt: now()->toDateTimeString(),
-        );
+        $dto = UpdatePortfolioDTO::fromArray([
+            'status' => 'published',
+            'published_at' => now()->toDateTimeString(),
+        ]);
 
         $updated = $this->portfolioRepository->update($id, $dto->toArray());
 
@@ -75,9 +74,9 @@ class PortfolioService implements ServiceContract
      */
     public function archivePortfolio(int $id): ?Portfolio
     {
-        $dto = new UpdatePortfolioDTO(
-            status: PortfolioStatus::Archived,
-        );
+        $dto = UpdatePortfolioDTO::fromArray([
+            'status' => 'archived',
+        ]);
 
         $updated = $this->portfolioRepository->update($id, $dto->toArray());
 

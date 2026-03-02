@@ -103,9 +103,9 @@ test('UpdatePortfolioDTO fromArray creates instance with partial fields', functi
 });
 
 test('UpdatePortfolioDTO toArray filters null values', function () {
-    $dto = new UpdatePortfolioDTO(
-        title: 'Only Title',
-    );
+    $dto = UpdatePortfolioDTO::fromArray([
+        'title' => 'Only Title',
+    ]);
 
     $array = $dto->toArray();
 
@@ -118,11 +118,11 @@ test('UpdatePortfolioDTO toArray filters null values', function () {
 });
 
 test('UpdatePortfolioDTO toArray includes all non-null values', function () {
-    $dto = new UpdatePortfolioDTO(
-        title: 'Updated',
-        status: PortfolioStatus::Published,
-        technologies: ['Vue', 'Laravel'],
-    );
+    $dto = UpdatePortfolioDTO::fromArray([
+        'title' => 'Updated',
+        'status' => 'published',
+        'technologies' => ['Vue', 'Laravel'],
+    ]);
 
     $array = $dto->toArray();
 
@@ -193,9 +193,9 @@ test('UpdatePortfolioCategoryDTO fromArray creates instance with partial fields'
 });
 
 test('UpdatePortfolioCategoryDTO toArray filters null values', function () {
-    $dto = new UpdatePortfolioCategoryDTO(
-        name: 'Only Name',
-    );
+    $dto = UpdatePortfolioCategoryDTO::fromArray([
+        'name' => 'Only Name',
+    ]);
 
     $array = $dto->toArray();
 
@@ -206,11 +206,11 @@ test('UpdatePortfolioCategoryDTO toArray filters null values', function () {
 });
 
 test('UpdatePortfolioCategoryDTO toArray includes all non-null values', function () {
-    $dto = new UpdatePortfolioCategoryDTO(
-        name: 'Updated',
-        slug: 'updated',
-        sortOrder: 5,
-    );
+    $dto = UpdatePortfolioCategoryDTO::fromArray([
+        'name' => 'Updated',
+        'slug' => 'updated',
+        'sort_order' => 5,
+    ]);
 
     $array = $dto->toArray();
 

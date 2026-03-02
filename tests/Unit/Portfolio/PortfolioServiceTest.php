@@ -62,7 +62,7 @@ test('updatePortfolio updates an existing portfolio', function () {
     $service = app(PortfolioService::class);
     $portfolio = Portfolio::factory()->create();
 
-    $dto = new UpdatePortfolioDTO(title: 'Updated Title');
+    $dto = UpdatePortfolioDTO::fromArray(['title' => 'Updated Title']);
     $updated = $service->updatePortfolio($portfolio->id, $dto);
 
     expect($updated)
@@ -73,7 +73,7 @@ test('updatePortfolio updates an existing portfolio', function () {
 test('updatePortfolio returns null for non-existent portfolio', function () {
     $service = app(PortfolioService::class);
 
-    $dto = new UpdatePortfolioDTO(title: 'Updated Title');
+    $dto = UpdatePortfolioDTO::fromArray(['title' => 'Updated Title']);
     $result = $service->updatePortfolio(99999, $dto);
 
     expect($result)->toBeNull();
@@ -156,7 +156,7 @@ test('updateCategory updates an existing category', function () {
     $service = app(PortfolioService::class);
     $category = PortfolioCategory::factory()->create();
 
-    $dto = new UpdatePortfolioCategoryDTO(name: 'Updated Category');
+    $dto = UpdatePortfolioCategoryDTO::fromArray(['name' => 'Updated Category']);
     $updated = $service->updateCategory($category->id, $dto);
 
     expect($updated)
@@ -167,7 +167,7 @@ test('updateCategory updates an existing category', function () {
 test('updateCategory returns null for non-existent category', function () {
     $service = app(PortfolioService::class);
 
-    $dto = new UpdatePortfolioCategoryDTO(name: 'Updated');
+    $dto = UpdatePortfolioCategoryDTO::fromArray(['name' => 'Updated']);
     $result = $service->updateCategory(99999, $dto);
 
     expect($result)->toBeNull();
