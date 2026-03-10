@@ -23,7 +23,7 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('admin')
-            ->domain('admin.mahir.test')
+            ->domain(config('filament.admin_domain'))
             ->path('')
             ->login()
             ->colors([

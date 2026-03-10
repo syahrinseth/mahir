@@ -94,6 +94,24 @@ composer run dev
 
 The app will be available at [http://mahir.test](http://mahir.test) if using [Laravel Herd](https://herd.laravel.com), or at `http://localhost:8000` via `php artisan serve`.
 
+### Accessing the Admin Panel
+
+The Filament admin panel is served on a configurable subdomain via the `ADMIN_PANEL_DOMAIN` environment variable in your `.env` file.
+
+**Local development** (default):
+```env
+ADMIN_PANEL_DOMAIN=admin.mahir.test
+```
+Access at: `https://admin.mahir.test`
+
+**Production**:
+```env
+ADMIN_PANEL_DOMAIN=admin.yourdomain.com
+```
+Access at: `https://admin.yourdomain.com`
+
+> Make sure your DNS and web server (Nginx/Apache) are configured to point the subdomain to your server, and that an SSL certificate is installed for the subdomain.
+
 ### Cloud SaaS (< 1 minute)
 
 Visit [mahir.syahrinseth.com](https://mahir.syahrinseth.com) → Sign up → Start building
