@@ -139,7 +139,10 @@ test('api spec documents the total expected number of path entries', function ()
     // portfolios/{portfolio}/media (index+store), portfolios/{portfolio}/media/{media} (destroy),
     // portfolios/{portfolio}/media/reorder,
     // portfolio-categories (index+store), portfolio-categories/{category} (show+update+destroy)
-    expect(count($paths))->toBe(25);
+    // testimonials (index+store), testimonials/{testimonial} (show+update+destroy),
+    // testimonials/{testimonial}/publish,
+    // testimonials/{testimonial}/media (index+store), testimonials/{testimonial}/media/{media} (destroy)
+    expect(count($paths))->toBe(33);
 });
 
 test('api docs ui returns 404 on admin subdomain', function () {

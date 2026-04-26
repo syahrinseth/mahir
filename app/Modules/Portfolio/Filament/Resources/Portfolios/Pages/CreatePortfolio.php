@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Modules\Article\Filament\Resources\Articles\Pages;
+namespace App\Modules\Portfolio\Filament\Resources\Portfolios\Pages;
 
-use App\Modules\Article\Filament\Resources\Articles\ArticleResource;
+use App\Modules\Portfolio\Filament\Resources\Portfolios\PortfolioResource;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Auth;
 
-class CreateArticle extends CreateRecord
+class CreatePortfolio extends CreateRecord
 {
-    protected static string $resource = ArticleResource::class;
+    protected static string $resource = PortfolioResource::class;
 
     /**
      * @param  array<string, mixed>  $data

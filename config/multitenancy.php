@@ -45,6 +45,7 @@ return [
     'switch_tenant_tasks' => [
         \Spatie\Multitenancy\Tasks\SwitchTenantDatabaseTask::class,
         \Spatie\Multitenancy\Tasks\PrefixCacheTask::class,
+        \App\Modules\Tenancy\Tasks\ResetPermissionsTask::class,
     ],
 
     /*

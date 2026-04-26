@@ -17,7 +17,7 @@ beforeEach(function () {
     $this->actingAs($adminUser, 'admin');
 
     Filament::setCurrentPanel(
-        Filament::getPanel('admin'),
+        Filament::getPanel('landlord'),
     );
 });
 
