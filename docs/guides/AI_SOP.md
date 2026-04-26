@@ -38,7 +38,7 @@ This document is the **authoritative reference** for any AI agent working on the
 | Testing | Pest | v4 |
 | Code Style | Laravel Pint | latest |
 
-**Architecture**: Modular. All domain code lives under `app/Modules/{ModuleName}/`. There are currently 3 modules: **Auth**, **Subscription**, **Tenancy**.
+**Architecture**: Modular. All domain code lives under `app/Modules/{ModuleName}/`. There are currently 5 modules: **Auth**, **Article**, **Portfolio**, **Subscription**, **Tenancy**.
 
 **Tenancy model**: Separate MySQL databases per tenant, resolved via subdomain. Landlord data (tenants, admin_users, subscriptions) lives in `mahir_landlord`. Tenant data (users, tokens) lives in `mahir_tenant_{slug}`.
 
@@ -129,7 +129,9 @@ app/Modules/{ModuleName}/
 
 | Module | Purpose | Models | DB Connection |
 |--------|---------|--------|---------------|
-| **Auth** | User authentication, registration, admin users | `User` (tenant), `AdminUser` (landlord), `PersonalAccessToken` (tenant) | Mixed |
+| **Article** | Article/blog content management | `Article`, `ArticleSeries`, `ArticleComment`, `ArticleRevision` | tenant |
+| **Auth** | User authentication, registration, admin users | `User` (tenant), `AdminUser` (landlord), `PersonalAccessToken` (tenant), `Permission` (tenant), `Role` (tenant) | Mixed |
+| **Portfolio** | Project showcase with media galleries | `Portfolio`, `PortfolioCategory`, `Testimonial` | tenant |
 | **Subscription** | Subscription & plan management | `Subscription` (landlord) | landlord |
 | **Tenancy** | Tenant lifecycle, DB provisioning, subdomain resolution | `Tenant` (landlord) | landlord |
 
@@ -785,7 +787,8 @@ Only add `Actions/`, `Enums/`, `Events/`, `Listeners/`, `Filament/` if needed.
 ### Step 14: Create Filament Resources (if admin management needed)
 
 - Follow the exact directory structure from Section 3
-- Add `discoverResources()` call in `AdminPanelProvider.php`
+- Landlord resources: add `discoverResources()` call in `LandlordPanelProvider.php`
+- Tenant resources: add `discoverResources()` call in `TenantPanelProvider.php`
 
 ### Step 15: Create Tests
 
@@ -849,6 +852,11 @@ php artisan test --compact
 | `Subscription` | `UsesLandlordConnection` | `mahir_landlord` |
 | `User` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
 | `PersonalAccessToken` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
+| `Permission` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
+| `Role` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
+| `Article` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
+| `Portfolio` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
+| `Testimonial` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
 
 ### Migration Directories
 
@@ -870,6 +878,7 @@ HTTP request to {slug}.mahir.test/api/v1/*
   -> $tenant->makeCurrent()
   -> SwitchTenantDatabaseTask sets `tenant` connection DB to mahir_tenant_{slug}
   -> PrefixCacheTask prefixes cache keys with tenant ID
+  -> ResetPermissionsTask flushes Spatie Permission in-memory cache
   -> Controller handles request with tenant context
 ```
 
@@ -878,7 +887,8 @@ HTTP request to {slug}.mahir.test/api/v1/*
 | URL | Purpose |
 |-----|---------|
 | `{slug}.mahir.test/api/v1/*` | Tenant API |
-| `admin.mahir.test` | Filament admin panel |
+| `{slug}.mahir.test/admin` | Tenant Filament panel |
+| `admin.mahir.test` | Landlord Filament panel |
 | `mahir.test` | Landing/web |
 
 Reserved subdomains that skip tenant resolution: `admin`, `www`.
@@ -947,7 +957,14 @@ All API route names follow: `api.{plural_noun}.{action}`
 
 ### Overview
 
-The admin panel at `admin.mahir.test` uses the `admin` auth guard with `AdminUser` model. Filament v5 is used.
+Mahir has **two Filament panels**:
+
+| Panel | URL | Auth Guard | User Model | Provider |
+|-------|-----|-----------|-----------|----------|
+| Landlord | `admin.mahir.test` | `admin` | `AdminUser` (landlord DB) | `LandlordPanelProvider` |
+| Tenant | `{slug}.mahir.test/admin` | `tenant` | `User` (tenant DB) | `TenantPanelProvider` |
+
+The tenant panel uses `EnsureTenantPanel` middleware to resolve and activate the correct tenant from the subdomain before Filament handles the request.
 
 ### Resource Directory Structure
 
@@ -966,7 +983,10 @@ The admin panel at `admin.mahir.test` uses the `admin` auth guard with `AdminUse
 
 ### Registration
 
-Resources are auto-discovered via `AdminPanelProvider.php` with `discoverResources()` calls per module:
+Resources are auto-discovered via `discoverResources()` in the panel providers:
+
+- **Landlord resources** → add `discoverResources()` call in `LandlordPanelProvider.php`
+- **Tenant resources** → add `discoverResources()` call in `TenantPanelProvider.php`
 
 ```php
 ->discoverResources(
@@ -975,7 +995,7 @@ Resources are auto-discovered via `AdminPanelProvider.php` with `discoverResourc
 )
 ```
 
-When adding a new module's Filament resources, add another `discoverResources()` call.
+When adding a new module's Filament resources, add a `discoverResources()` call to the appropriate panel provider.
 
 ### Key Filament v5 Differences
 
@@ -1207,17 +1227,17 @@ test('{noun} is persisted to database', function () {
 ### Running Tests
 
 ```bash
-# All tests
-php artisan test --compact
+# All tests (explicit memory limit required — default 128M is insufficient)
+php -d memory_limit=256M vendor/bin/pest --compact
 
 # Specific test file
-php artisan test --compact --filter={TestName}
+php -d memory_limit=256M vendor/bin/pest --compact --filter={TestName}
 
 # Only unit tests
-php artisan test --compact --testsuite=Unit
+php -d memory_limit=256M vendor/bin/pest --compact --testsuite=Unit
 
 # Only feature tests
-php artisan test --compact --testsuite=Feature
+php -d memory_limit=256M vendor/bin/pest --compact --testsuite=Feature
 ```
 
 ---
@@ -1230,8 +1250,8 @@ Run this every time before considering your work complete:
 # 1. Format code
 vendor/bin/pint --dirty --format agent
 
-# 2. Run all tests
-php artisan test --compact
+# 2. Run all tests (explicit memory limit required)
+php -d memory_limit=256M vendor/bin/pest --compact
 ```
 
 ### Verify:
@@ -1306,7 +1326,8 @@ Filament v5 uses different APIs than v3. Always search documentation first:
 | `bootstrap/providers.php` | All service provider registrations (order matters). |
 | `config/database.php` | landlord, tenant, sqlite connections. |
 | `config/multitenancy.php` | Spatie config: tenant finder, switch tasks, queue awareness. |
-| `config/auth.php` | Guards (web, admin, sanctum) and user providers. |
+| `config/auth.php` | Guards (web, admin, tenant, sanctum) and user providers. |
+| `config/permission.php` | Spatie Permission: custom tenant-scoped Permission and Role models. |
 | `phpunit.xml` | Test environment: SQLite in-memory, env overrides. |
 
 ### Provider Registration Order
@@ -1314,10 +1335,13 @@ Filament v5 uses different APIs than v3. Always search documentation first:
 ```php
 return [
     App\Providers\AppServiceProvider::class,
-    App\Providers\Filament\AdminPanelProvider::class,
+    App\Providers\Filament\LandlordPanelProvider::class,
+    App\Providers\Filament\TenantPanelProvider::class,
     App\Modules\Tenancy\Providers\TenancyServiceProvider::class,
     App\Modules\Auth\Providers\AuthServiceProvider::class,
     App\Modules\Subscription\Providers\SubscriptionServiceProvider::class,
+    App\Modules\Article\Providers\ArticleServiceProvider::class,
+    App\Modules\Portfolio\Providers\PortfolioServiceProvider::class,
 ];
 ```
 

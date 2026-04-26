@@ -14,7 +14,7 @@ The codebase follows a **modular architecture** where all related code for a dom
 | PHP | 8.3+ |
 | Database | MySQL (separate DB per tenant) |
 | Multitenancy | Spatie Laravel Multitenancy v4 |
-| Admin Panel | Filament v5 (landlord-only) |
+| Admin Panel | Filament v5 (landlord + tenant panels) |
 | Auth (API) | Laravel Sanctum v4 (token-based) |
 | Frontend | Livewire v4, Vite |
 | Testing | Pest v4 |
@@ -37,7 +37,8 @@ app/
 ├── Providers/
 │   ├── AppServiceProvider.php        # Registers migration paths
 │   └── Filament/
-│       └── AdminPanelProvider.php    # Filament panel config
+│       ├── LandlordPanelProvider.php  # Filament landlord panel (admin.mahir.test)
+│       └── TenantPanelProvider.php    # Filament tenant panel ({slug}.mahir.test/admin)
 ├── Support/
 │   └── MediaLibrary/                 # Spatie Media Library extensions
 │       ├── MultiTenantPathGenerator.php  # Prefixes paths with tenants/{id}/
@@ -52,16 +53,17 @@ bootstrap/
 └── providers.php                     # Service provider registration
 
 config/
-├── auth.php                          # Guards: web, admin, api (sanctum)
+├── auth.php                          # Guards: web, admin, tenant, api (sanctum)
 ├── database.php                      # Connections: landlord, tenant, sqlite
 ├── media-library.php                 # Spatie: TenantAwareMedia model, MultiTenantPathGenerator
-└── multitenancy.php                  # Spatie config, tenant finder, switch tasks
+├── multitenancy.php                  # Spatie config, tenant finder, switch tasks
+└── permission.php                    # Spatie Permission: custom tenant-scoped models
 
 database/
 ├── factories/                        # Eloquent model factories
 ├── migrations/
 │   ├── landlord/                     # Landlord DB tables (tenants, admin_users, subscriptions, etc.)
-│   └── tenant/                       # Tenant DB tables (users, personal_access_tokens)
+│   └── tenant/                       # Tenant DB tables (users, personal_access_tokens, roles, permissions, articles, portfolios, etc.)
 └── seeders/
     ├── DatabaseSeeder.php            # Entry point — calls LandlordSeeder only
     ├── landlord/
@@ -114,8 +116,8 @@ Not every module has all directories — only the ones that are needed. For exam
 | Module | Purpose | Models | DB Connection |
 |--------|---------|--------|---------------|
 | **Article** | Article/blog content management | `Article`, `ArticleSeries`, `ArticleComment`, `ArticleRevision` | tenant |
-| **Auth** | User authentication, registration, admin users | `User`, `AdminUser`, `PersonalAccessToken` | `User` on tenant, `AdminUser` on landlord |
-| **Portfolio** | Project showcase with media galleries | `Portfolio`, `PortfolioCategory` | tenant (media via Spatie `TenantAwareMedia`) |
+| **Auth** | User authentication, registration, admin users | `User`, `AdminUser`, `PersonalAccessToken`, `Permission`, `Role` | `User`/`Permission`/`Role` on tenant, `AdminUser` on landlord |
+| **Portfolio** | Project showcase with media galleries | `Portfolio`, `PortfolioCategory`, `Testimonial` | tenant (media via Spatie `TenantAwareMedia`) |
 | **Subscription** | Subscription & plan management | `Subscription` | landlord |
 | **Tenancy** | Tenant lifecycle, database creation, subdomain resolution | `Tenant` | landlord |
 
@@ -230,10 +232,16 @@ The default connection is `landlord`. The `tenant` connection has `database: nul
 | `Subscription` | `UsesLandlordConnection` | `mahir_landlord` |
 | `User` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
 | `PersonalAccessToken` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
+| `Permission` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
+| `Role` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
+| `Article` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
+| `ArticleSeries` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
+| `ArticleComment` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
+| `ArticleRevision` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
 | `Portfolio` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
 | `PortfolioCategory` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
+| `Testimonial` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
 | `TenantAwareMedia` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
-| `Article` | `UsesTenantConnection` | `mahir_tenant_{slug}` |
 
 ### Tenant Resolution Flow
 
@@ -245,6 +253,7 @@ Request to {slug}.mahir.test/api/v1/*
   -> $tenant->makeCurrent()
   -> SwitchTenantDatabaseTask sets tenant connection DB to mahir_tenant_{slug}
   -> PrefixCacheTask prefixes cache keys with tenant ID
+  -> ResetPermissionsTask flushes Spatie Permission in-memory cache
   -> Controller handles request with tenant context active
 ```
 
@@ -254,7 +263,8 @@ Request to {slug}.mahir.test/api/v1/*
 |-----|------------|
 | `acme.mahir.test/api/v1/*` | Tenant with slug `acme` |
 | `widgets.mahir.test/api/v1/*` | Tenant with slug `widgets` |
-| `admin.mahir.test` | Filament admin panel (no tenant) |
+| `acme.mahir.test/admin` | Tenant Filament panel for tenant `acme` |
+| `admin.mahir.test` | Landlord Filament panel (no tenant) |
 | `mahir.test` | Landing/web (no tenant) |
 
 Reserved subdomains that skip tenant resolution: `admin`, `www`
@@ -346,9 +356,13 @@ All API routes are prefixed with `/api/v1` (configured in `bootstrap/app.php` vi
 |--------|----------|------|------|
 | GET | `/api/v1/ping` | `api.ping` | No |
 
-## Filament Admin Panel
+## Filament Admin Panels
 
-The admin panel at `admin.mahir.test` uses the `admin` auth guard and discovers resources from each module directory:
+Mahir has **two Filament panels**:
+
+### Landlord Panel (`admin.mahir.test`)
+
+Uses the `admin` auth guard and `AdminUser` model (landlord DB). Configured in `LandlordPanelProvider`.
 
 | Resource | Module Path | Manages |
 |----------|------------|---------|
@@ -356,7 +370,19 @@ The admin panel at `admin.mahir.test` uses the `admin` auth guard and discovers 
 | `SubscriptionResource` | `Modules/Subscription/Filament/Resources/Subscriptions/` | Tenant subscriptions |
 | `TenantResource` | `Modules/Tenancy/Filament/Resources/Tenants/` | Tenant records |
 
-Each Filament resource follows a consistent structure:
+### Tenant Panel (`{slug}.mahir.test/admin`)
+
+Uses the `tenant` auth guard and `User` model (tenant DB). Configured in `TenantPanelProvider`. The `EnsureTenantPanel` middleware resolves and activates the tenant from the subdomain for Filament requests.
+
+| Resource | Module Path | Manages |
+|----------|------------|---------|
+| `ArticleResource` | `Modules/Article/Filament/Resources/Articles/` | Blog articles |
+| `ArticleSeriesResource` | `Modules/Article/Filament/Resources/ArticleSeries/` | Article series |
+| `PortfolioCategoryResource` | `Modules/Portfolio/Filament/Resources/PortfolioCategories/` | Portfolio categories |
+| `PortfolioResource` | `Modules/Portfolio/Filament/Resources/Portfolios/` | Portfolio projects |
+| `TestimonialResource` | `Modules/Portfolio/Filament/Resources/Testimonials/` | Testimonials |
+
+### Resource Structure (both panels)
 ```
 {ResourceName}/
 ├── {ResourceName}Resource.php    # Resource class with navigation, relations
@@ -370,7 +396,7 @@ Each Filament resource follows a consistent structure:
     └── {Names}Table.php          # Table schema (columns, filters, actions)
 ```
 
-Resource discovery is configured in `AdminPanelProvider` with three `discoverResources()` calls, one per module.
+Resource discovery is configured in `LandlordPanelProvider` (for landlord resources) and `TenantPanelProvider` (for tenant resources) with `discoverResources()` calls per module.
 
 ## Factories
 
@@ -406,10 +432,23 @@ tests/
 │   ├── RegisterTest.php           # Tests — registration, validation, uniqueness
 │   ├── LogoutTest.php             # 3 tests — logout, token revocation, unauth
 │   └── UserTest.php               # Tests — authenticated user endpoint
+├── Feature/Article/
+│   └── Filament/
+│       ├── ArticleFilamentTest.php        # Filament CRUD for articles
+│       └── ArticleSeriesFilamentTest.php  # Filament CRUD for article series
+├── Feature/Portfolio/
+│   └── Filament/
+│       ├── PortfolioCategoryFilamentTest.php
+│       ├── PortfolioFilamentTest.php
+│       └── TestimonialFilamentTest.php
 ├── Feature/Subscription/
 │   └── SubscriptionCrudTest.php   # 15 tests — full CRUD + validation + auth
 ├── Feature/Tenancy/
-│   └── TenantCrudTest.php         # 15 tests — full CRUD + validation + auth
+│   ├── TenantCrudTest.php         # 15 tests — full CRUD + validation + auth
+│   ├── SpatiePermissionConnectionTest.php # 9 tests — permission connection isolation
+│   └── Filament/
+│       ├── AdminUserFilamentTest.php
+│       └── SubscriptionFilamentTest.php
 └── Unit/Auth/
     ├── AuthServiceTest.php        # 9 tests — registerUser, attemptLogin, logout
     ├── LoginActionTest.php        # 5 tests — execute with valid/invalid/inactive
@@ -419,14 +458,14 @@ tests/
 ### Running Tests
 
 ```bash
-# Run all tests
-php artisan test --compact
+# Run all tests (use explicit memory limit — default 128M is insufficient)
+php -d memory_limit=256M vendor/bin/pest --compact
 
 # Run a specific test file
-php artisan test --compact --filter=LoginTest
+php -d memory_limit=256M vendor/bin/pest --compact --filter=LoginTest
 
 # Run only unit tests
-php artisan test --compact --testsuite=Unit
+php -d memory_limit=256M vendor/bin/pest --compact --testsuite=Unit
 ```
 
 ## Queue Awareness
@@ -499,10 +538,13 @@ To add Spatie media to a new model:
 
 Registered providers (order matters):
 1. `AppServiceProvider` — registers migration paths
-2. `AdminPanelProvider` — Filament panel configuration
-3. `TenancyServiceProvider` — tenancy bindings
-4. `AuthServiceProvider` — auth module bindings
-5. `SubscriptionServiceProvider` — subscription module bindings
+2. `LandlordPanelProvider` — Filament landlord panel configuration
+3. `TenantPanelProvider` — Filament tenant panel configuration
+4. `TenancyServiceProvider` — tenancy bindings
+5. `AuthServiceProvider` — auth module bindings
+6. `SubscriptionServiceProvider` — subscription module bindings
+7. `ArticleServiceProvider` — article module bindings
+8. `PortfolioServiceProvider` — portfolio module bindings
 
 ## Adding a New Module
 
@@ -513,7 +555,7 @@ Registered providers (order matters):
 5. Migrations: place in `database/migrations/landlord/` or `database/migrations/tenant/`
 6. DTOs: create in `{ModuleName}/DTOs/` with `readonly` constructor properties and `fromArray()`
 7. Enums: create in `{ModuleName}/Enums/` as backed string enums with `label()` method
-8. Filament: create resources in `{ModuleName}/Filament/Resources/` and add `discoverResources()` to `AdminPanelProvider`
+8. Filament: create resources in `{ModuleName}/Filament/Resources/` and add `discoverResources()` to `LandlordPanelProvider` (landlord resources) or `TenantPanelProvider` (tenant resources)
 9. Tests: create feature tests in `tests/Feature/{ModuleName}/`, unit tests in `tests/Unit/{ModuleName}/`
 10. Follow existing patterns from `Tenancy`, `Auth`, or `Subscription` modules
 
@@ -535,7 +577,8 @@ Registered providers (order matters):
 |------|---------|
 | `config/multitenancy.php` | Tenant finder, switch tasks, queue awareness, connection names |
 | `config/database.php` | Landlord + tenant MySQL connections, SQLite for tests |
-| `config/auth.php` | Guards (web, admin, sanctum) and user providers |
+| `config/auth.php` | Guards (web, admin, tenant, sanctum) and user providers |
+| `config/permission.php` | Spatie Permission: custom Permission and Role models (tenant-scoped) |
 | `config/media-library.php` | Spatie Media Library: model, path generator, disk settings |
 | `bootstrap/app.php` | Middleware pipeline, routing config, API prefix |
 | `bootstrap/providers.php` | All service provider registrations |

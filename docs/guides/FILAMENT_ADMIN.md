@@ -1,16 +1,23 @@
 # Filament Admin Guide
 
-Using and extending the Mahir admin panel built with Filament v5.
+Using and extending the Mahir admin panels built with Filament v5.
 
 ---
 
-## Access
+## Overview
 
-| Detail | Value |
-|--------|-------|
-| URL | `admin.mahir.test` |
-| Auth guard | `admin` (session-based) |
-| User model | `AdminUser` (landlord DB) |
+Mahir has **two Filament panels**:
+
+| Panel | URL | Auth Guard | User Model | Provider |
+|-------|-----|-----------|-----------|----------|
+| Landlord | `admin.mahir.test` | `admin` (session) | `AdminUser` (landlord DB) | `LandlordPanelProvider` |
+| Tenant | `{slug}.mahir.test/admin` | `tenant` (session) | `User` (tenant DB) | `TenantPanelProvider` |
+
+---
+
+## Landlord Panel
+
+### Access
 
 Login with an `AdminUser` account. Create one via seeder or tinker:
 
@@ -22,11 +29,7 @@ AdminUser::create([
 ]);
 ```
 
----
-
-## Navigation
-
-The admin panel has three resource sections:
+### Navigation
 
 | Section | Resource | Module | Manages |
 |---------|----------|--------|---------|
@@ -34,7 +37,23 @@ The admin panel has three resource sections:
 | Tenancy | Tenants | Tenancy | Tenant records (name, slug, domain, status) |
 | Tenancy | Subscriptions | Subscription | Tenant subscription plans & statuses |
 
-Each resource supports full CRUD: list, create, edit, delete.
+---
+
+## Tenant Panel
+
+### Access
+
+Login at `{slug}.mahir.test/admin` with a tenant `User` account. The subdomain determines which tenant's data is shown. The `EnsureTenantPanel` middleware (`app/Http/Middleware/EnsureTenantPanel.php`) resolves and activates the correct tenant from the subdomain before Filament handles the request.
+
+### Navigation
+
+| Section | Resource | Module | Manages |
+|---------|----------|--------|---------|
+| Content | Articles | Article | Blog articles |
+| Content | Article Series | Article | Article series groupings |
+| Portfolio | Portfolio Categories | Portfolio | Portfolio category taxonomy |
+| Portfolio | Portfolios | Portfolio | Portfolio projects with media |
+| Portfolio | Testimonials | Portfolio | Client testimonials |
 
 ---
 
@@ -60,8 +79,19 @@ Every Filament resource lives inside its module at `app/Modules/{Module}/Filamen
 ## Adding a New Resource
 
 1. Create the directory structure above inside your module
-2. Follow an existing resource as a template (e.g., `Tenants/`)
-3. Register discovery in `app/Providers/Filament/AdminPanelProvider.php`:
+2. Follow an existing resource as a template (e.g., `Tenants/` for landlord, `Articles/` for tenant)
+3. Register discovery in the appropriate panel provider:
+
+**Landlord resource** → `app/Providers/Filament/LandlordPanelProvider.php`:
+
+```php
+->discoverResources(
+    in: app_path('Modules/{Module}/Filament/Resources'),
+    for: 'App\\Modules\\{Module}\\Filament\\Resources'
+)
+```
+
+**Tenant resource** → `app/Providers/Filament/TenantPanelProvider.php`:
 
 ```php
 ->discoverResources(
@@ -79,4 +109,4 @@ Every Filament resource lives inside its module at `app/Modules/{Module}/Filamen
 - **Icons**: Use Heroicon enum constants (e.g., `Heroicon::OutlinedUsers`)
 - **Enum integration**: Use `Rule::enum()` for selects and badge colors via `color()` method on enums
 
-Always check the [Filament v5 docs](https://filamentphp.com/docs) or use the `search-docs` tool for version-specific guidance.
+Always use the `search-docs` tool for version-specific Filament guidance.

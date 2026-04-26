@@ -11,7 +11,7 @@ Mahir uses **separate MySQL databases per tenant** (not shared tables). Each ten
 | Database | Stores | Connection Name |
 |----------|--------|-----------------|
 | `mahir_landlord` | Tenants, admin users, subscriptions, sessions, cache, jobs | `landlord` (default) |
-| `mahir_tenant_{slug}` | Users, personal access tokens | `tenant` |
+| `mahir_tenant_{slug}` | Users, personal access tokens, roles, permissions, articles, portfolios, testimonials | `tenant` |
 
 ---
 
@@ -24,7 +24,8 @@ Request: acme.mahir.test/api/v1/auth/login
   3. $tenant->makeCurrent() activates Spatie's tenant context
   4. SwitchTenantDatabaseTask sets tenant connection to mahir_tenant_acme
   5. PrefixCacheTask prefixes cache keys with tenant ID
-  6. Controller handles request — all tenant-scoped models now query the correct DB
+  6. ResetPermissionsTask flushes Spatie Permission in-memory cache
+  7. Controller handles request — all tenant-scoped models now query the correct DB
 ```
 
 ### Reserved Subdomains
@@ -34,7 +35,8 @@ Request: acme.mahir.test/api/v1/auth/login
 | URL | Resolves To |
 |-----|------------|
 | `acme.mahir.test/api/v1/*` | Tenant "acme" |
-| `admin.mahir.test` | Filament admin panel (no tenant) |
+| `acme.mahir.test/admin` | Tenant Filament panel for "acme" |
+| `admin.mahir.test` | Landlord Filament panel (no tenant) |
 | `mahir.test` | Landing/web (no tenant) |
 
 ---
@@ -50,6 +52,16 @@ Models declare their connection via traits:
 | `Subscription` | `UsesLandlordConnection` | landlord |
 | `User` | `UsesTenantConnection` | tenant |
 | `PersonalAccessToken` | `UsesTenantConnection` | tenant |
+| `Permission` | `UsesTenantConnection` | tenant |
+| `Role` | `UsesTenantConnection` | tenant |
+| `Article` | `UsesTenantConnection` | tenant |
+| `ArticleSeries` | `UsesTenantConnection` | tenant |
+| `ArticleComment` | `UsesTenantConnection` | tenant |
+| `ArticleRevision` | `UsesTenantConnection` | tenant |
+| `Portfolio` | `UsesTenantConnection` | tenant |
+| `PortfolioCategory` | `UsesTenantConnection` | tenant |
+| `Testimonial` | `UsesTenantConnection` | tenant |
+| `TenantAwareMedia` | `UsesTenantConnection` | tenant |
 
 ---
 
@@ -115,22 +127,23 @@ php artisan tenants:artisan "db:seed --class=Database\\Seeders\\Tenant\\TenantSe
 
 | Step | Directory / Seeder | What it does |
 |------|--------------------|--------------|
-| 1 | `database/migrations/tenant/` | Creates users, personal_access_tokens, roles, permissions tables |
+| 1 | `database/migrations/tenant/` | Creates users, personal_access_tokens, roles, permissions, articles, portfolios, testimonials, and related tables |
 | 2 | `TenantSeeder` | Seeds roles, permissions, and default users |
 
-### Spatie Permission Connection Gotcha
+### Spatie Permission Tenant Connection
 
-Spatie Permission models use the **default** DB connection (`landlord`), but permission tables live in **tenant** databases. `TenantSeeder` works around this by temporarily switching the default connection:
+Spatie Permission's built-in models default to the application's default DB connection (`landlord`), but permission tables live in **tenant** databases.
+
+**The fix**: Custom `Permission` and `Role` models in `app/Modules/Auth/Models/` extend Spatie's models with the `UsesTenantConnection` trait, forcing all queries to the tenant connection. These custom models are registered in `config/permission.php`:
 
 ```php
-$originalConnection = DB::getDefaultConnection();
-DB::setDefaultConnection('tenant');
-try {
-    // seed roles & permissions
-} finally {
-    DB::setDefaultConnection($originalConnection);
-}
+'models' => [
+    'permission' => App\Modules\Auth\Models\Permission::class,
+    'role' => App\Modules\Auth\Models\Role::class,
+],
 ```
+
+`ResetPermissionsTask` (registered in `config/multitenancy.php` under `switch_tenant_tasks`) flushes Spatie's in-memory permission cache on every tenant switch, so the correct tenant's permissions are always loaded.
 
 ---
 
