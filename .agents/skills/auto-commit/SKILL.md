@@ -46,7 +46,27 @@ Then execute the commit protocol automatically.
 - [ ] Identify the nature of changes: feature, bug fix, refactor, documentation, etc.
 - [ ] Estimate time spent based on session context
 
-### Step 2: Draft Commit Message
+### Step 2a: Arch-Guard File Scan (NEW)
+- [ ] Run `git diff --staged --name-only` to list all staged files
+- [ ] Cross-reference each file against arch-guard's 5 protected zones:
+  - Directory structure changes (new top-level folders, module reorganization)
+  - Base class or trait files (`app/Traits/`, base models, interfaces)
+  - Migration files that rename tables/columns or change column types
+  - Filament panel provider or plugin registration files
+  - Route files with group or versioning changes
+- [ ] If ANY staged file touches a protected zone AND no arch-guard approval was logged in this session:
+  - **Block the commit**
+  - Output:
+    ```
+    Auto-Commit blocked: staged files include a protected architecture zone.
+    File(s): [list]
+    Zone: [zone name]
+    Resolve with arch-guard approval ("yes, allow arch change") before committing.
+    ```
+  - Do not proceed until arch-guard approval is confirmed
+- [ ] If arch-guard approval was already granted in this session for these files: proceed normally
+
+### Step 3: Draft Commit Message
 - [ ] Apply the configured commit format:
 
   ```
@@ -64,18 +84,18 @@ Then execute the commit protocol automatically.
 - [ ] For trivial changes: use Minimal format (one-liner, no sections)
 - [ ] For incomplete work: use WIP format with `WIP:` prefix
 
-### Step 3: Execute Commit
+### Step 4: Execute Commit
 - [ ] Stage files by name: `git add [specific files]` (prefer named files over `git add -A`)
 - [ ] Warn if any sensitive files are staged (.env, credentials, API keys, tokens)
 - [ ] Commit using HEREDOC format for proper multi-line message formatting
 - [ ] Verify commit succeeded with `git status` (should show clean working tree)
 
-### Step 4: Confirm
+### Step 5: Confirm
 - [ ] Display: short commit hash, title, number of files changed
 - [ ] Report author name on the commit
 - [ ] Show any remaining unstaged/untracked files if applicable
 
-### Step 5: Push (Optional)
+### Step 6: Push (Optional)
 - [ ] Only execute if user explicitly said "push" or "commit and push"
 - [ ] Never auto-push -- pushing affects remote repositories and should be deliberate
 - [ ] Run `git push` and confirm success

@@ -165,3 +165,16 @@ arch('controllers')
 - Forgetting datasets for repetitive validation tests
 - Deleting tests without approval
 - Forgetting `assertNoJavaScriptErrors()` in browser tests
+
+## Arch-Guard Integration
+
+When writing or modifying tests that assert on structural concerns, arch-guard must have already approved the change:
+
+| Test type | When arch-guard applies |
+|-----------|------------------------|
+| Migration tests / schema assertions | Column renames, type changes, new foreign keys |
+| Route tests | Route group changes, versioning, prefix renames |
+| Filament resource tests | Panel config, navigation group assertions |
+| Base class / trait tests | Changes to shared model behavior |
+
+**Rule:** If a test is being written to cover an arch change, arch-guard approval must be confirmed first. Do not write a test for a structural change that has not been approved -- this prevents tests from codifying unapproved architecture.

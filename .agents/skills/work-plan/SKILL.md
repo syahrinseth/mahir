@@ -11,6 +11,17 @@ description: "MUST use when user says 'copy plan', 'append plan', 'resume plan',
 # Work -- Plan Execution Skill
 *Plan lifecycle management with tracked execution and context recovery*
 
+## Skill Dependencies
+
+This skill cooperates with two companion skills that MUST also be active during execution:
+
+| Skill | Role |
+|-------|------|
+| **phase-guard** | Enforces phase scope -- prevents out-of-scope edits during execution |
+| **arch-guard** | Protects architecture zones -- hard stops before structural changes |
+
+Activate both at the start of every `copy plan`, `append plan`, and `resume plan` command.
+
 ## Activation
 
 Three commands, each with its own activation message:
@@ -132,20 +143,30 @@ After a context reset, the AI loses its working state. `"resume plan"` restores 
 The core cycle that all three commands use after setup:
 
 ```
+On first execution:
+  0a. Activate arch-guard  -> load architecture journal, surface any pending reviews
+  0b. Activate phase-guard -> identify the scope of the first phase
+
 For each [ ] todo item in order:
-  1. Execute the task (write code, create files, make changes)
-  2. Auto-Commit triggers -> structured commit for this completed item
-  3. Mark the item as [x] in the plan file
-  4. Every 5 completed items -> save/update the plan file (checkpoint)
-  5. Move to the next [ ] item
-  6. If item is [~] (blocked) -> skip and continue to next
+  1. phase-guard: confirm item is in-scope before touching any file
+  2. arch-guard:  if the item touches a protected zone, halt for approval before proceeding
+  3. Execute the task (write code, create files, make changes)
+  4. pest-testing: run the minimum test set that covers this item; fix before continuing
+  5. Auto-Commit triggers -> structured commit for this completed item
+  6. Mark the item as [x] in the plan file
+  7. Every 5 completed items -> save/update the plan file (checkpoint)
+  8. Move to the next [ ] item
+  9. If item is [~] (blocked) -> skip and continue to next
+ 10. On phase boundary: phase-guard exit protocol -> diff check, phase commit, user approval before next phase
 ```
 
 ### Key Behaviors
-- **Per-task commits** -- each completed todo gets its own commit via Auto-Commit (not batched)
-- **Checkpoint saves** -- plan file is updated every 5 items to prevent loss
-- **Skip blocked items** -- `[~]` items are flagged and skipped, not stalled on
-- **User can pause** -- if user says "stop" or "pause", halt at the current item
+- **per-task commits** -- each completed todo gets its own commit via Auto-Commit (not batched)
+- **checkpoint saves** -- plan file is updated every 5 items to prevent loss
+- **skip blocked items** -- `[~]` items are flagged and skipped, not stalled on
+- **user can pause** -- if user says "stop" or "pause", halt at the current item
+- **arch-guard takes precedence** -- if an arch approval is needed, the execution loop pauses until resolved
+- **phase transitions require user confirmation** -- phase-guard blocks auto-advancing to the next phase
 
 ---
 
